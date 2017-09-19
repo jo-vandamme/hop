@@ -133,7 +133,6 @@ int Renderer::render(bool interactive)
     while (!m_window->should_close())
     {
         m_window->poll_events();
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         float elapsed_time = (float)timer.get_elapsed_time_ms();
         if (elapsed_time > 1000.0f)
