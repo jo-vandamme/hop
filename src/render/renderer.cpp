@@ -169,20 +169,36 @@ int Renderer::render(bool interactive)
 
 inline Vec3r Renderer::get_radiance(const Ray& ray)
 {
-    Vec3r color(1, 1, 1);
+    constexpr int occlusion_quality = 5;
+
     SurfaceInteraction isect;
     HitInfo hit;
+    if (!m_world->intersect(ray, &hit))
+        return Vec3r(0, 0, 0);
 
-    if (m_world->intersect(ray, &hit))
+    m_world->get_surface_interaction(hit, &isect);
+    Vec3r n = normalize(isect.normal);
+
+    Vec3r occlusion;
+    double occlusion_amount = 1.0;
+    const double occlusion_step = 1.0 / (double)occlusion_quality;
+    for (int i = 0; i < occlusion_quality; ++i)
     {
-        m_world->get_surface_interaction(hit, &isect);
-        color = isect.normal;
+        Vec3r random_dir = normalize(Vec3r(random<Real>(), random<Real>(), random<Real>()));
+        if (dot(random_dir, n) < 0)
+            random_dir = -random_dir;
+        Ray occlusion_ray;
+        occlusion_ray.org = isect.position;
+        occlusion_ray.dir = random_dir;
+        occlusion_ray.tmin = 0;
+        occlusion_ray.tmax = 1000;
+        HitInfo occlusion_hit;
+        if (m_world->intersect_any(occlusion_ray, &occlusion_hit))
+            occlusion_amount -= occlusion_step;
     }
-    else
-    {
-        color = Vec3r(0, 0, 0);
-    }
-    return color;
+    occlusion = occlusion_amount * Vec3r(1, 1, 1);
+
+    return occlusion;
 }
 
 void Renderer::render_tile(Vec3r* buffer, uint32 tile_x, uint32 tile_y, uint32 tile_w, uint32 tile_h, uint32 spp)
