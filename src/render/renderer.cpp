@@ -24,7 +24,7 @@ namespace hop {
 
 Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
-    , m_world(world), m_camera(camera), m_options(options)
+    , m_world(world), m_camera(camera), m_num_tiles_drawn(0), m_total_spp(0), m_options(options)
 {
     m_window->set_key_handler([&](int key, int scancode, int action, int mods)
     {
@@ -50,20 +50,21 @@ void Renderer::set_camera(std::shared_ptr<Camera> camera)
 
 void Renderer::reset()
 {
+    m_total_spp = 0;
     std::unique_lock<std::mutex> lock(m_framebuffer_mutex);
 
     for (uint32 i = 0; i < m_options.frame_size.y; ++i)
         for (uint32 j = 0; j < m_options.frame_size.x; ++j)
             m_accum_buffer[i * m_options.frame_size.x + j] = Vec3r(0, 0, 0);
+
+    init_tiles();
 }
 
-int Renderer::render(bool interactive)
+void Renderer::init_tiles()
 {
-    struct TileInfo
-    {
-        uint32 x, y, w, h, n;
-    };
-    std::vector<TileInfo> tiles;
+    std::unique_lock<std::mutex> lock(m_tiles_mutex);
+
+    m_tiles.clear();
     for (uint32 y = 0; y < m_options.frame_size.y; y += m_options.tile_size.y)
     {
         TileInfo tile;
@@ -75,12 +76,20 @@ int Renderer::render(bool interactive)
         {
             tile.x = x;
             tile.w = min(m_options.frame_size.x - x, m_options.tile_size.x);
-            tiles.push_back(tile);
+            m_tiles.push_back(tile);
         }
     }
-    std::atomic<size_t> next_free_tile(0);
+
+    m_num_tiles_drawn = 0;
+}
+
+int Renderer::render(bool interactive)
+{
+    init_tiles();
+
     std::atomic<bool> rendering_done(false);
     std::atomic<bool> tile_done(false);
+    uint32 next_free_tile = 0;
 
     m_accum_buffer = std::make_unique<Vec3r[]>(m_options.frame_size.x * m_options.frame_size.y);
     std::memset(&m_accum_buffer[0], 0, m_options.frame_size.x * m_options.frame_size.y * sizeof(Vec3r));
@@ -89,21 +98,23 @@ int Renderer::render(bool interactive)
     int num_threads = std::thread::hardware_concurrency() - 1;
     std::vector<std::thread> render_threads;
 
-    std::atomic<int> tiles_drawn(0);
-
     for (int i = 0; i < num_threads; ++i)
     {
         render_threads.push_back(std::thread([&]()
         {
             while (!rendering_done)
             {
-                if (!interactive && next_free_tile >= tiles.size())
+                if (!interactive && next_free_tile >= m_tiles.size())
                     break;
 
                 // get a tile and render it
-                TileInfo& tile = tiles[next_free_tile++ % tiles.size()];
+                m_tiles_mutex.lock();
+                uint32 tile_idx = next_free_tile++ % m_tiles.size();
                 const uint32 spp = m_options.tile_spp;
-                tile.n += spp;
+                m_tiles[tile_idx].n += spp;
+                TileInfo tile = m_tiles[tile_idx];
+                m_tiles_mutex.unlock();
+
                 std::unique_ptr<Vec3r[]> buffer = std::make_unique<Vec3r[]>(tile.w * tile.h);
                 render_tile(&buffer[0], tile.x, tile.y, tile.w, tile.h, spp);
 
@@ -119,7 +130,7 @@ int Renderer::render(bool interactive)
                 }
                 m_framebuffer_mutex.unlock();
                 tile_done = true;
-                ++tiles_drawn;
+                ++m_num_tiles_drawn;
             }
         }));
     }
@@ -137,12 +148,13 @@ int Renderer::render(bool interactive)
         float elapsed_time = (float)timer.get_elapsed_time_ms();
         if (elapsed_time > 1000.0f)
         {
-            int num_rays = tiles_drawn * m_options.tile_size.x * m_options.tile_size.y * m_options.tile_spp;
+            int num_rays = m_num_tiles_drawn * m_options.tile_size.x * m_options.tile_size.y * m_options.tile_spp;
             float rays_per_s = 1000.0f * num_rays / timer.get_elapsed_time_ms();
 
-            Log("render") << INFO << std::fixed << std::setprecision(3) << rays_per_s * 0.001f << " krays/s";
+            Log("render") << INFO << m_tiles[0].n << " spp - "
+                                  << std::fixed << std::setprecision(3) << rays_per_s * 0.001f << " krays/s";
 
-            tiles_drawn = 0;
+            m_num_tiles_drawn = 0;
             timer.start();
         }
 

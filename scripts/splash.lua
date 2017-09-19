@@ -39,8 +39,8 @@ function init()
 end
 
 function key_handler(key)
-    print("Key handler: " .. key)
     if string.byte(" ", 1) == key then
+        print("Render reset")
         renderer:reset()
     end
 end
