@@ -10,8 +10,6 @@ script:
 install:
     # Update system
   - sudo apt-get update -qq
-    # Install LUA dependencies
-  - sudo apt-get install -qq liblua5.3-0 liablua5.3-dev
     # Install GLEW dependencies
   - sudo apt-get install -qq libglew-dev
     # Install dependencies for GLFW

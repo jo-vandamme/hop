@@ -99,7 +99,11 @@ void Environment::execute(const char* func, int arg)
 void Environment::register_module(const char* module, const luaL_Reg* funcs)
 {
     luaL_newmetatable(L, module);
+#if LUA_VERSION_NUM >= 502
     luaL_setfuncs(L, funcs, 0);
+#else
+    luaL_register(L, module, funcs);
+#endif
     lua_pushvalue(L, -1);
     lua_setfield(L, -1, "__index");
     lua_setglobal(L, module);
