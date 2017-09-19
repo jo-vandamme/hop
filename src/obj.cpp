@@ -161,7 +161,7 @@ ShapeID load(const char* file)
                     size_t index = indices[j];
                     tri.vertices[j] = vertices[face_vert_idx[index]];
                     if (has_normals)
-                        tri.normals[j] = normals[face_norm_idx[index]];
+                        tri.normals[j] = normalize(normals[face_norm_idx[index]]);
                     if (has_uvs)
                         tri.uvs[j] = uvs[face_uv_idx[index]];
                 }
