@@ -34,12 +34,12 @@ $ ./hop scene.lua
 
 ## Sample Images
 
-Image of a splash, no shading yet, only the surface normals and some depth of field.
-![Splash](doc/images/splash.png?raw=true "Splash")
-The model was dowloaded on Free3D and is from DOSH Design.
+Image of a tree, rendered with ambient occlusion.
+![Tree](doc/images/tree.png?raw=true "Tree")
 
-The same model rendered with ambient occlusion.
+Image of a splash, rendered with ambient occlusion and some depth of field.
 ![Splash AO](doc/images/splash_ao.png?raw=true "Splash AO")
+The model was dowloaded on Free3D and is from DOSH Design.
 
 This image shows the ray tracing of 3 mesh instances for a total of 4.5M triangles. It also shows some depth of field.
 ![Skull](doc/images/skull.png?raw=true "Skull")

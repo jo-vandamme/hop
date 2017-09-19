@@ -169,8 +169,6 @@ int Renderer::render(bool interactive)
 
 inline Vec3r Renderer::get_radiance(const Ray& ray)
 {
-    constexpr int occlusion_quality = 5;
-
     SurfaceInteraction isect;
     HitInfo hit;
     if (!m_world->intersect(ray, &hit))
@@ -179,6 +177,7 @@ inline Vec3r Renderer::get_radiance(const Ray& ray)
     m_world->get_surface_interaction(hit, &isect);
     Vec3r n = normalize(isect.normal);
 
+    constexpr int occlusion_quality = 10;
     Vec3r occlusion;
     double occlusion_amount = 1.0;
     const double occlusion_step = 1.0 / (double)occlusion_quality;
