@@ -9,7 +9,7 @@ This is a work in progress, only done on my spare time.
 - OBJ model loading
 - Instancing
 - Data driven configuration via Lua
-- Interactive rendering
+- Interactive tiled rendering
 - Depth of field
 
 Since I am developping on Linux, the code is targeted to Linux platforms for now, but supporting Windows/Mac OS should not be too difficult.
@@ -34,8 +34,11 @@ $ ./hop scene.lua
 
 ## Sample Images
 
-Image of a tree, rendered with ambient occlusion.
+Image of a tree (35M triangles), rendered with ambient occlusion.
 ![Tree](doc/images/tree.png?raw=true "Tree")
+
+The same tree, instanced 50 times (170M triangles) and rendered with depth of field and ambient occlusion.
+![Forest DOF](doc/images/forest_dof.png?raw=true "Forest DOF")
 
 Image of a splash, rendered with ambient occlusion and some depth of field.
 ![Splash AO](doc/images/splash_ao.png?raw=true "Splash AO")
