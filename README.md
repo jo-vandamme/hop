@@ -36,7 +36,8 @@ $ ./hop scene.lua
 
 This image shows the ray tracing of 3 mesh instances for a total of 4.5M triangles. It also shows some depth of field.
 ![Skull](doc/images/skull.png?raw=true "Skull")
+I really don't remember where I downloaded this model...
 
-Image of a splash, no shading yet, only the surface normals.
+Image of a splash, no shading yet, only the surface normals and some depth of field.
 ![Splash](doc/images/splash.png?raw=true "Splash")
 The model was dowloaded on Free3D and is from DOSH Design.

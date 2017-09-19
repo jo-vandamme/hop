@@ -8,6 +8,7 @@
 #include "render/gl_window.h"
 #include "math/vec3.h"
 #include "lua/environment.h"
+#include "util/log.h"
 
 #include <memory>
 #include <mutex>
@@ -18,6 +19,7 @@ class Renderer
 {
 public:
     Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options);
+    ~Renderer() { Log("renderer") << DEBUG << "renderer deleted"; }
 
     int render(bool interactive = true);
     void set_camera(std::shared_ptr<Camera> camera);

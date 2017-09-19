@@ -16,6 +16,8 @@
 #include "math/vec3.h"
 #include "math/transform.h"
 
+#include "util/log.h"
+
 #include <memory>
 #include <vector>
 
@@ -24,6 +26,7 @@ namespace hop {
 class World
 {
 public:
+    ~World() { Log("world") << DEBUG << "world deleted"; }
     void add_shape(ShapeID shape_id);
 
     void preprocess();

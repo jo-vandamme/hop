@@ -3,6 +3,7 @@
 #include "hop.h"
 #include "math/transform.h"
 #include "math/vec3.h"
+#include "util/log.h"
 
 #include <memory>
 
@@ -15,6 +16,7 @@ class Camera
 {
 public:
     Camera(const Transformr& cam2world);
+    virtual ~Camera() { Log("camera") << DEBUG << "camera deleted"; }
 
     void set_world_transform(const Transformr& xfm);
 

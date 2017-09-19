@@ -11,9 +11,14 @@ find_package(OpenMP REQUIRED)
 # Set compilation flags
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE CXX STANDARD REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -std=c++1y -O3 -Wall -Wextra -Wpedantic -march=native")
 
-#add_definitions(-DDEBUG)
+set(DEBUG OFF)
+if(DEBUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -std=c++1y -g -O0 -Wall -Wextra -Wpedantic -march=native")
+    add_definitions(-DDEBUG)
+else(DEBUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -std=c++1y -O4 -Wall -Wextra -Wpedantic -march=native")
+endif(DEBUG)
 
 include_directories(OPENGL_INCLUDE_DIR)
 include_directories(GLEW_INCLUDE_DIRS)

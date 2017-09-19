@@ -1,3 +1,4 @@
+#include "hop.h"
 #include "lua/lua.h"
 #include "lua/stack.h"
 #include "lua/environment.h"
@@ -20,6 +21,14 @@
 namespace hop { namespace lua {
 
 static Environment* g_environment;
+
+// This is here because GCC was optmizing away the destructor calls
+// causing a segfault when during lua exit
+template <typename T>
+void NOOPTIMIZE destroy(T& obj)
+{
+    obj.~T();
+}
 
 static int load_obj(lua_State* L)
 {
@@ -127,22 +136,6 @@ static int transform_mul(lua_State* L)
     return 1;
 }
 
-static int world_ctor(lua_State* L)
-{
-    Stack s(L);
-    auto world = std::make_shared<World>();
-    s.push_world(world);
-    return 1;
-}
-
-static int make_scale_transform(lua_State* L)
-{
-    Stack s(L);
-    Transformr xfm = make_scale(Vec3r(s.get_double(1), s.get_double(2), s.get_double(3)));
-    s.push_transform(xfm);
-    return 1;
-}
-
 static int make_translation_transform(lua_State* L)
 {
     Stack s(L);
@@ -162,12 +155,27 @@ static int make_lookat_transform(lua_State* L)
     return 1;
 }
 
+static int world_ctor(lua_State* L)
+{
+    Stack s(L);
+    auto world = std::make_shared<World>();
+    s.push_world(world);
+    return 1;
+}
+
+static int make_scale_transform(lua_State* L)
+{
+    Stack s(L);
+    Transformr xfm = make_scale(Vec3r(s.get_double(1), s.get_double(2), s.get_double(3)));
+    s.push_transform(xfm);
+    return 1;
+}
+
 static int world_dtor(lua_State* L)
 {
-    using WorldPtr = std::shared_ptr<World>;
     Stack s(L);
     auto world = s.get_world(1);
-    world.~WorldPtr();
+    destroy(world);
     return 0;
 }
 
@@ -226,10 +234,9 @@ static int camera_make_perspective(lua_State* L)
 
 static int camera_dtor(lua_State* L)
 {
-    using CamPtr = std::shared_ptr<Camera>;
     Stack s(L);
     auto camera = s.get_camera(1);
-    camera.~CamPtr();
+    destroy(camera);
     return 0;
 }
 
@@ -266,10 +273,9 @@ static int renderer_ctor(lua_State* L)
 
 static int renderer_dtor(lua_State* L)
 {
-    using RPtr = std::shared_ptr<Renderer>;
     Stack s(L);
     auto renderer = s.get_renderer(1);
-    renderer.~RPtr();
+    destroy(renderer);
     return 0;
 }
 
