@@ -7,7 +7,6 @@ find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(OpenMP REQUIRED)
-find_package(Lua REQUIRED)
 
 # Set compilation flags
 set(CMAKE_CXX_STANDARD 14)
