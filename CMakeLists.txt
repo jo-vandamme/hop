@@ -21,6 +21,7 @@ include_directories(GLFW_INCLUDE_DIRS)
 include_directories(3rdparty/lua-5.3.4/src/)
 include_directories(src)
 
+add_definitions(-DLUA_USE_POSIX)
 add_subdirectory(3rdparty/lua-5.3.4/src)
 
 file(GLOB_RECURSE HOP_HEADERS src/*.h)

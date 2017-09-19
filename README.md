@@ -15,11 +15,11 @@ This is a work in progress, done on my spare time.
 Since I am developping on Linux, the code is targeted to Linux platforms for now, but supporting Windows/Mac OS should not be too difficult.
 
 ## Compiling and running
-Requires cmake and OpenMP for multithreading.
+Requires cmake and OpenMP for multithreading, Lua is built with the project.
 
 Download & Compile:
 ```
-$ git clone --recursive https://github.com/jo-va/hop.git
+$ git clone https://github.com/jo-va/hop.git
 $ cd hop
 $ mkdir build
 $ cd build
@@ -34,3 +34,5 @@ $ ./hop scene.lua
 
 ## Sample Images
 
+This images shows the ray tracing of 3 instances of a 1.5M triangles mesh with depth of field.
+![Skull](doc/images/skull.png?raw=true "Skull")
