@@ -1,19 +1,29 @@
-language: cpp
+dist: trusty
+sudo: required
+language:
+  - cpp
 compiler:
   - gcc
-os:
-  - linux
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-6
+      - g++-6
+      - cmake
+      - libglew-dev
+      - xorg-dev
+      - libglu1-mesa-dev
+      - libcurl3-dev
+      - libopenimageio-dev
 script:
-  - mkdir build
-  - cd build
+  - export CC=/usr/bin/gcc-6
+  - export CXX=/usr/bin/g++-6
+  - gcc -v && g++ -v && cmake --version
+  - mkdir build && cd build
   - cmake .. && make
 install:
-    # Update system
-  - sudo apt-get update -qq
-    # Install GLEW dependencies
-  - sudo apt-get install -qq libglew-dev
-    # Install dependencies for GLFW
-  - sudo apt-get install -qq xorg-dev libglu1-mesa-dev
     # Build GLFW
   - mkdir TRAVIS_TMP && cd TRAVIS_TMP
   - git clone https://github.com/glfw/glfw.git && cd glfw
