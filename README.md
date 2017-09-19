@@ -81,17 +81,17 @@ end
 
 ## Sample Images
 
-Image of a tree (35M triangles), rendered with ambient occlusion.
-![Tree](doc/images/tree.png?raw=true "Tree")
+Image of a tree (3.5M triangles), rendered with ambient occlusion.
+![Tree AO](doc/images/tree_ao.png?raw=true "Tree AO")
 
 The same tree, instanced 50 times (170M triangles) and rendered with depth of field and ambient occlusion.
-![Forest DOF](doc/images/forest_dof.png?raw=true "Forest DOF")
+![Forest AO](doc/images/forest_ao.png?raw=true "Forest AO")
 
 Image of a splash, rendered with ambient occlusion and some depth of field.
 ![Splash AO](doc/images/splash_ao.png?raw=true "Splash AO")
 The model was dowloaded on Free3D and is from DOSH Design.
 
 This image shows the ray tracing of 3 mesh instances for a total of 4.5M triangles. It also shows some depth of field.
-![Skull](doc/images/skull.png?raw=true "Skull")
+![Skull AO](doc/images/skull_ao.png?raw=true "Skull AO")
 I really don't remember where I downloaded this model...
 

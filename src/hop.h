@@ -8,7 +8,7 @@
 #define BBOX_SIMD_ISECT
 #undef TRIS_SIMD_ISECT
 
-#define MIN_PRIMS_PER_LEAF 8
+#define MIN_PRIMS_PER_LEAF 4
 #define NUM_SAH_SPLITS 30
 #define BVH_TRAV_COST 0.25
 #define NUM_AO_RAYS 10
