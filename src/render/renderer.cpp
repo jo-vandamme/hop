@@ -190,11 +190,23 @@ inline Vec3r Renderer::get_radiance(const Ray& ray)
     Vec3r n = normalize(isect.normal);
 
     Vec3r occlusion;
-    double occlusion_amount = 1.0;
-    const double occlusion_step = 1.0 / (double)NUM_AO_RAYS;
+    Real occlusion_amount = 1.0;
+    const Real occlusion_step = 1.0 / (Real)NUM_AO_RAYS;
     for (int i = 0; i < NUM_AO_RAYS; ++i)
     {
-        double x, y, z, d;
+#if 0
+        Real t0 = 2.0 * (Real)pi * random<Real>();
+        Real t1 = acos(1.0 - 2.0 * random<Real>());
+        Real s0 = sin(t0);
+        Real s1 = sin(t1);
+        Real c0 = cos(t0);
+        Real c1 = cos(t1);
+        Real x = s0 * s1;
+        Real y = c0 * s1;
+        Real z = c1;
+        Vec3r random_dir(x, y, z);
+#else
+        Real x, y, z, d;
         do {
             x = random<Real>() * 2 - 1;
             y = random<Real>() * 2 - 1;
@@ -202,9 +214,10 @@ inline Vec3r Renderer::get_radiance(const Ray& ray)
             d = x * x + y * y + z * z;
         } while (d > 1);
         Vec3r random_dir(x / d, y / d, z / d);
+        random_dir = normalize(random_dir);
+#endif
         if (dot(random_dir, n) < 0)
             random_dir = -random_dir;
-        random_dir = normalize(random_dir);
 
         Ray occlusion_ray;
         occlusion_ray.org = isect.position + random_dir * RAY_EPSILON;
