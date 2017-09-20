@@ -64,6 +64,12 @@ struct M256
     };
 };
 
+template <typename T>
+bool is_power_of_2(T x)
+{
+    return x > 0 && !(x & (x - 1));
+}
+
 template<class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_equal(T x, T y, int ulp = 1)
 {

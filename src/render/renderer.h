@@ -29,16 +29,23 @@ public:
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
 
 private:
-    void init_tiles_linear();
-    void init_tiles_spiral();
-    void render_tile(Vec3r* buffer, uint32 tile_x, uint32 tile_y, uint32 tile_w, uint32 tile_h, uint32 spp);
-    void postprocess_buffer_and_display(Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y);
-    Vec3r get_radiance(const Ray& ray);
+    struct Tile
+    {
+        uint32 x, y, w, h;
+    };
 
     struct TileInfo
     {
-        int x, y, w, h, n;
+        uint32 num_iters, num_samples;
     };
+
+    void init_tiles_linear();
+    void init_tiles_spiral();
+    uint32 render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset);
+    void render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp);
+    void render_subtile_corners(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp);
+    void postprocess_buffer_and_display(Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y);
+    Vec3r get_radiance(const Ray& ray);
 
 private:
     std::unique_ptr<GLWindow> m_window;
@@ -47,7 +54,8 @@ private:
     std::mutex m_framebuffer_mutex;
     std::mutex m_tiles_mutex;
     std::unique_ptr<Vec3r[]> m_accum_buffer;
-    std::vector<TileInfo> m_tiles;
+    std::vector<Tile> m_tiles;
+    std::vector<TileInfo> m_tiles_infos;
     std::atomic<uint32> m_num_tiles_drawn;
     uint32 m_next_free_tile;
     uint32 m_total_spp;

@@ -1,6 +1,7 @@
 #include "hop.h"
 #include "render/renderer.h"
 #include "render/gl_window.h"
+#include "render/sampling.h"
 #include "geometry/world.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
@@ -59,22 +60,23 @@ void Renderer::set_camera(std::shared_ptr<Camera> camera)
 
 void Renderer::reset()
 {
-    m_total_spp = 0;
     std::unique_lock<std::mutex> fb_lock(m_framebuffer_mutex);
 
     for (uint32 i = 0; i < m_options.frame_size.y; ++i)
         for (uint32 j = 0; j < m_options.frame_size.x; ++j)
             m_accum_buffer[i * m_options.frame_size.x + j] = Vec3r(0, 0, 0);
 
-#ifdef TILES_SPIRAL
-    init_tiles_spiral();
-#else
-    init_tiles_linear();
-#endif
-
     std::unique_lock<std::mutex> tiles_lock(m_tiles_mutex);
+
+    m_total_spp = 0;
     m_next_free_tile = 0;
     m_num_tiles_drawn = 0;
+
+    for (uint32 i = 0; i < m_tiles_infos.size(); ++i)
+    {
+        m_tiles_infos[i].num_iters = 0;
+        m_tiles_infos[i].num_samples = 0;
+    }
 }
 
 void Renderer::init_tiles_spiral()
@@ -82,24 +84,31 @@ void Renderer::init_tiles_spiral()
     std::unique_lock<std::mutex> lock(m_tiles_mutex);
 
     m_tiles.clear();
+    m_tiles_infos.clear();
     const int fw = m_options.frame_size.x;
     const int fh = m_options.frame_size.y;
     const int tw = m_options.tile_size.x;
     const int th = m_options.tile_size.y;
 
+    TileInfo info;
+    info.num_samples = 0;
+    info.num_iters = 0;
+
     // This function gets a tile coordinate and calculates the
     // corresponding tile, if the tile is non-empty, it pushed into the list
     auto make_tile = [&](int i, int j)
     {
-        TileInfo tile;
-        tile.n = 0;
+        Tile tile;
         tile.x = (int)max(0.0f, min(((float)i - 1.0f) * tw + (float)fw / 2.0f, (float)fw));
         tile.y = (int)max(0.0f, min(((float)j - 1.0f) * th + (float)fh / 2.0f, (float)fh));
-        tile.w = min(fw - tile.x, tw);
-        tile.h = min(fh - tile.y, th);
+        tile.w = min(fw - (float)tile.x, (float)tw);
+        tile.h = min(fh - (float)tile.y, (float)th);
 
         if (tile.w != 0 && tile.h != 0)
+        {
             m_tiles.push_back(tile);
+            m_tiles_infos.push_back(info);
+        }
     };
 
     int X = fw / tw + 2;
@@ -131,10 +140,15 @@ void Renderer::init_tiles_linear()
     std::unique_lock<std::mutex> lock(m_tiles_mutex);
 
     m_tiles.clear();
+    m_tiles_infos.clear();
+
+    TileInfo info;
+    info.num_samples = 0;
+    info.num_iters = 0;
+
     for (uint32 y = 0; y < m_options.frame_size.y; y += m_options.tile_size.y)
     {
-        TileInfo tile;
-        tile.n = 0;
+        Tile tile;
         tile.y = y;
         tile.h = min(m_options.frame_size.y - y, m_options.tile_size.y);
 
@@ -143,6 +157,7 @@ void Renderer::init_tiles_linear()
             tile.x = x;
             tile.w = min(m_options.frame_size.x - x, m_options.tile_size.x);
             m_tiles.push_back(tile);
+            m_tiles_infos.push_back(info);
         }
     }
 }
@@ -175,25 +190,40 @@ int Renderer::render(bool interactive)
                 if (!interactive && m_next_free_tile >= m_tiles.size())
                     break;
 
-                // get a tile and render it
+                // Get a tile and render it
                 m_tiles_mutex.lock();
                 uint32 tile_idx = m_next_free_tile++ % m_tiles.size();
-                const uint32 spp = m_options.tile_spp;
-                m_tiles[tile_idx].n += spp;
-                TileInfo tile = m_tiles[tile_idx];
+                Tile tile = m_tiles[tile_idx];
+                TileInfo info = m_tiles_infos[tile_idx];
                 m_tiles_mutex.unlock();
 
+                bool reset = false;
                 std::unique_ptr<Vec3r[]> buffer = std::make_unique<Vec3r[]>(tile.w * tile.h);
-                render_tile(&buffer[0], tile.x, tile.y, tile.w, tile.h, spp);
+                uint32 num_samples = render_tile(&buffer[0], tile, info, m_options.tile_spp, reset);
 
+                // Increase the sample count for this tile
+                m_tiles_mutex.lock();
+                if (reset)
+                    m_tiles_infos[tile_idx].num_samples = 0;
+                m_tiles_infos[tile_idx].num_samples += num_samples;
+                ++m_tiles_infos[tile_idx].num_iters;
+                uint32 total_samples = m_tiles_infos[tile_idx].num_samples;
+                m_tiles_mutex.unlock();
+
+                if (tile_idx == 0)
+                    m_total_spp = total_samples;
+
+                // Add the tile buffer to the accumulator and scale the value accordingly
                 m_framebuffer_mutex.lock();
-                for (int i = 0; i < tile.h; ++i)
+                for (uint32 i = 0; i < tile.h; ++i)
                 {
-                    for (int j = 0; j < tile.w; ++j)
+                    for (uint32 j = 0; j < tile.w; ++j)
                     {
                         uint32 idx = (tile.y + i) * m_options.frame_size.x + tile.x + j;
-                        Real n = (Real)tile.n;
-                        m_accum_buffer[idx] = (m_accum_buffer[idx] * (n - spp) + buffer[i * tile.w + j]) * rcp(n);
+                        m_accum_buffer[idx] = reset ?
+                            buffer[i * tile.w + j] * rcp((Real)num_samples) :
+                            (m_accum_buffer[idx] * (Real)(total_samples - num_samples) +
+                             buffer[i * tile.w + j]) * rcp((Real)total_samples);
                     }
                 }
                 m_framebuffer_mutex.unlock();
@@ -219,7 +249,7 @@ int Renderer::render(bool interactive)
             int num_rays = m_num_tiles_drawn * m_options.tile_size.x * m_options.tile_size.y * m_options.tile_spp;
             float rays_per_s = 1000.0f * num_rays / timer.get_elapsed_time_ms();
 
-            Log("render") << INFO << m_tiles[0].n << " spp - "
+            Log("render") << INFO << m_total_spp << " spp - "
                                   << std::fixed << std::setprecision(3) << rays_per_s * 0.001f << " krays/s";
 
             m_num_tiles_drawn = 0;
@@ -262,28 +292,7 @@ inline Vec3r Renderer::get_radiance(const Ray& ray)
     const Real occlusion_step = 1.0 / (Real)NUM_AO_RAYS;
     for (int i = 0; i < NUM_AO_RAYS; ++i)
     {
-#if 0
-        Real t0 = 2.0 * (Real)pi * random<Real>();
-        Real t1 = acos(1.0 - 2.0 * random<Real>());
-        Real s0 = sin(t0);
-        Real s1 = sin(t1);
-        Real c0 = cos(t0);
-        Real c1 = cos(t1);
-        Real x = s0 * s1;
-        Real y = c0 * s1;
-        Real z = c1;
-        Vec3r random_dir(x, y, z);
-#else
-        Real x, y, z, d;
-        do {
-            x = random<Real>() * 2 - 1;
-            y = random<Real>() * 2 - 1;
-            z = random<Real>() * 2 - 1;
-            d = x * x + y * y + z * z;
-        } while (d > 1);
-        Vec3r random_dir(x / d, y / d, z / d);
-        random_dir = normalize(random_dir);
-#endif
+        Vec3r random_dir = sample::uniform_sample_hemisphere(random<Real>(), random<Real>());
         if (dot(random_dir, n) < 0)
             random_dir = -random_dir;
 
@@ -301,31 +310,79 @@ inline Vec3r Renderer::get_radiance(const Ray& ray)
     return occlusion;
 }
 
-void Renderer::render_tile(Vec3r* buffer, uint32 tile_x, uint32 tile_y, uint32 tile_w, uint32 tile_h, uint32 spp)
+void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp)
 {
-    for (uint32 j = 0; j < tile_h; ++j)
+    Vec3r color(0, 0, 0);
+    for (uint32 k = 0; k < spp; ++k)
     {
-        for (uint32 i = 0; i < tile_w; ++i)
+        Ray ray;
+        CameraSample sample;
+        sample.lens_point = Vec2r(random<Real>(), random<Real>());
+        sample.film_point = Vec2r((Real)(tile.x + subtile.x) + random<Real>() * (Real)subtile.w,
+                                  (Real)(tile.y + subtile.y) + random<Real>() * (Real)subtile.h);
+
+        Real ray_w = m_camera->generate_ray(sample, &ray);
+        color = color + get_radiance(ray) * ray_w;
+    }
+
+    for (uint32 j = 0; j < subtile.h; ++j)
+    {
+        for (uint32 i = 0; i < subtile.w; ++i)
         {
-            const uint32 idx = j * tile_w + i;
-            buffer[idx] = Vec3r(0, 0, 0);
-            Vec3r color(0, 0, 0);
-
-            for (uint32 k = 0; k < spp; ++k)
-            {
-                Ray ray;
-                CameraSample sample;
-                sample.lens_point = Vec2r(random<Real>(), random<Real>());
-                sample.film_point = Vec2r((Real)i + (Real)tile_x + random<Real>(),
-                                          (Real)j + (Real)tile_y + random<Real>());
-                Real ray_w = m_camera->generate_ray(sample, &ray);
-
-                color = color + get_radiance(ray) * ray_w;
-
-            }
-            buffer[idx] = buffer[idx] + color;// * rcp((Real)spp);
+            uint32 idx = (subtile.y + j) * tile.w + subtile.x + i;
+            buffer[idx] = color;
         }
     }
+}
+
+void Renderer::render_subtile_corners(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp)
+{
+    if (subtile.w <= res)
+    {
+        render_subtile(buffer, tile, subtile, spp);
+    }
+    else
+    {
+        uint32 size = subtile.w / 2;
+        Tile corner0 = { subtile.x,        subtile.y,        size, size };
+        Tile corner1 = { subtile.x + size, subtile.y,        size, size };
+        Tile corner2 = { subtile.x,        subtile.y + size, size, size };
+        Tile corner3 = { subtile.x + size, subtile.y + size, size, size };
+        render_subtile_corners(buffer, tile, corner0, res, spp);
+        render_subtile_corners(buffer, tile, corner1, res, spp);
+        render_subtile_corners(buffer, tile, corner2, res, spp);
+        render_subtile_corners(buffer, tile, corner3, res, spp);
+    }
+}
+
+uint32 Renderer::render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset)
+{
+    bool preview = (tile.w == tile.h) && is_power_of_2(tile.w);
+    uint32 first_iter_accum = __builtin_ffs(tile.w) - 1;
+
+    if (preview && info.num_iters <= first_iter_accum)
+    {
+        uint32 res = tile.w / (1 << info.num_iters);
+        Tile subtile = { 0, 0, tile.w, tile.h };
+        render_subtile_corners(buffer, tile, subtile, res, spp);
+        reset = true;
+    }
+    else
+    {
+        if (preview && info.num_iters == first_iter_accum + 1)
+            reset = true;
+
+        for (uint32 j = 0; j < tile.h; ++j)
+        {
+            for (uint32 i = 0; i < tile.w; ++i)
+            {
+                Tile subtile = { i, j, 1, 1 };
+                render_subtile(buffer, tile, subtile, spp);
+            }
+        }
+    }
+
+    return spp;
 }
 
 void Renderer::postprocess_buffer_and_display(
