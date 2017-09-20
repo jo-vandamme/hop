@@ -1,7 +1,6 @@
 #include "hop.h"
 #include "render/renderer.h"
 #include "render/gl_window.h"
-#include "render/sampling.h"
 #include "geometry/world.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
@@ -11,6 +10,7 @@
 #include "math/mat4.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
+#include "integrators/ambient_occlusion.h"
 #include "options.h"
 #include "types.h"
 
@@ -28,6 +28,8 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
     , m_world(world), m_camera(camera), m_num_tiles_drawn(0), m_next_free_tile(0)
     , m_total_spp(0), m_options(options)
 {
+    m_integrator = std::make_unique<AmbientOcclusionIntegrator>(m_world);
+
     m_window->set_key_handler([&](int key, int /*scancode*/, int action, int /*mods*/)
     {
         if (m_lua)
@@ -278,39 +280,6 @@ int Renderer::render(bool interactive)
     return 0;
 }
 
-inline Vec3r Renderer::get_radiance(const Ray& ray)
-{
-    SurfaceInteraction isect;
-    HitInfo hit;
-    if (!m_world->intersect(ray, &hit))
-        return Vec3r(0, 0, 0);
-
-    m_world->get_surface_interaction(hit, &isect);
-    Vec3r n = normalize(isect.normal);
-
-    Vec3r occlusion;
-    Real occlusion_amount = 1.0;
-    const Real occlusion_step = 1.0 / (Real)NUM_AO_RAYS;
-    for (int i = 0; i < NUM_AO_RAYS; ++i)
-    {
-        Vec3r random_dir = sample::uniform_sample_hemisphere(random<Real>(), random<Real>());
-        if (dot(random_dir, n) < 0)
-            random_dir = -random_dir;
-
-        Ray occlusion_ray;
-        occlusion_ray.org = isect.position + random_dir * RAY_EPSILON;
-        occlusion_ray.dir = random_dir;
-        occlusion_ray.tmin = RAY_TMIN;
-        occlusion_ray.tmax = RAY_TFAR;
-        HitInfo occlusion_hit;
-        if (m_world->intersect_any(occlusion_ray, &occlusion_hit))
-            occlusion_amount -= occlusion_step;
-    }
-    occlusion = occlusion_amount * Vec3r(1, 1, 1);
-
-    return occlusion;
-}
-
 // Renders a subtile, spp rays are shot from the tile to determine the tile's uniform color
 void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp)
 {
@@ -332,7 +301,7 @@ void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subti
 
         Ray ray;
         Real ray_w = m_camera->generate_ray(sample, &ray);
-        color = color + get_radiance(ray) * ray_w;
+        color = color + m_integrator->get_radiance(ray) * ray_w;
     }
 
     for (uint32 j = 0; j < subtile.h; ++j)

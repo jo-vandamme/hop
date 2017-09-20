@@ -33,7 +33,7 @@ public:
 
     virtual const std::string& get_name() const = 0;
     virtual ShapeType get_type() const = 0;
-    virtual uint32 get_num_primitives() const = 0;
+    virtual uint64 get_num_primitives() const = 0;
     virtual bool is_instance() const = 0;
     virtual const BBoxr& get_bbox() const = 0;
     virtual const Vec3r& get_centroid() const = 0;

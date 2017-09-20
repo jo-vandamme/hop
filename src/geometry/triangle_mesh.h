@@ -21,7 +21,7 @@ public:
 
     const std::string& get_name() const override { return m_name; }
     ShapeType get_type() const override { return TRIANGLE_MESH; }
-    uint32 get_num_primitives() const override { return m_triangles.size(); }
+    uint64 get_num_primitives() const override { return m_triangles.size(); }
     bool is_instance() const override { return false; }
 
     const BBoxr& get_bbox() const override { return m_bbox; }

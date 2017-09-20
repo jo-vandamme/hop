@@ -378,6 +378,7 @@ static int renderer_ctor(lua_State* L)
     opts.tile_size = Vec2u(tw, th);
     opts.tile_spp = spp;
     opts.tile_preview_spp = prev_spp;
+    opts.preview = preview;
 
     std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(world, cam, opts);
     renderer->set_lua_environment(g_environment);

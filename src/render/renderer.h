@@ -9,6 +9,7 @@
 #include "math/vec3.h"
 #include "lua/environment.h"
 #include "util/log.h"
+#include "integrators/integrator.h"
 
 #include <memory>
 #include <mutex>
@@ -41,11 +42,12 @@ private:
 
     void init_tiles_linear();
     void init_tiles_spiral();
+
     uint32 render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset);
     void render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp);
     void render_subtile_corners(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp);
+
     void postprocess_buffer_and_display(Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y);
-    Vec3r get_radiance(const Ray& ray);
 
 private:
     std::unique_ptr<GLWindow> m_window;
@@ -57,6 +59,7 @@ private:
     std::vector<Tile> m_tiles;
     std::vector<TileInfo> m_tiles_infos;
     std::atomic<uint32> m_num_tiles_drawn;
+    std::unique_ptr<Integrator> m_integrator;
     uint32 m_next_free_tile;
     uint32 m_total_spp;
     Options m_options;

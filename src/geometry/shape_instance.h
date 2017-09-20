@@ -19,7 +19,7 @@ public:
 
     const std::string& get_name() const override { return m_name; }
     ShapeType get_type() const override { return m_shape->get_type(); };
-    uint32 get_num_primitives() const override { return m_shape->get_num_primitives(); };
+    uint64 get_num_primitives() const override { return m_shape->get_num_primitives(); };
     bool is_instance() const override { return true; };
     const BBoxr& get_bbox() const override { return m_bbox; };
     const Vec3r& get_centroid() const override { return m_centroid; }

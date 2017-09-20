@@ -89,7 +89,7 @@ void World::preprocess()
     stop_watch.stop();
     Log("world") << INFO << "preprocessed scene in " << stop_watch.get_elapsed_time_ms() << " ms";
 
-    uint32 total = 0;
+    uint64 total = 0;
     for (auto id : m_instance_ids)
         total += ShapeManager::get<Shape>(id)->get_num_primitives();
 
@@ -130,7 +130,7 @@ void World::partition_instances()
     auto inst_leaf_cb = [&](bvh::Node* leaf, const std::vector<ShapeInstance*>& instances)
     {
         ShapeInstance* inst = instances[0];
-        for (uint32 i = 0; i < instances_vec.size(); ++i)
+        for (size_t i = 0; i < instances_vec.size(); ++i)
         {
             if (instances_vec[i] == inst)
             {
