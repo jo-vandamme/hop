@@ -21,7 +21,8 @@ public:
     ShapeType get_type() const override { return m_shape->get_type(); };
     uint32 get_num_primitives() const override { return m_shape->get_num_primitives(); };
     bool is_instance() const override { return true; };
-    BBoxr get_bbox() override { return m_bbox; };
+    const BBoxr& get_bbox() const override { return m_bbox; };
+    const Vec3r& get_centroid() const override { return m_centroid; }
 
     void get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info) override;
 
@@ -34,6 +35,7 @@ private:
     ShapeID m_shape_id;
     Transformr m_transform;
     BBoxr m_bbox;
+    Vec3r m_centroid;
     std::string m_name;
 };
 

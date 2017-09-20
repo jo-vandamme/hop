@@ -9,6 +9,7 @@
 #include "render/renderer.h"
 
 #include <memory>
+#include <string>
 
 namespace hop { namespace lua {
 
@@ -17,24 +18,8 @@ class Stack
 public:
     Stack(lua_State* L) : L(L) { }
 
-    void push_int(int value)
+    template <typename T> void push(T value)
     {
-        lua_pushinteger(L, value);
-    }
-
-    void push_bool(bool value)
-    {
-        lua_pushboolean(L, value);
-    }
-
-    void push_double(double value)
-    {
-        lua_pushnumber(L, value);
-    }
-
-    void push_string(const char* s)
-    {
-        lua_pushstring(L, s);
     }
 
     void push_vec3(const Vec3r& v)
@@ -133,5 +118,30 @@ public:
 private:
     lua_State* L;
 };
+
+template <> void Stack::push<int>(int value)
+{
+    lua_pushinteger(L, value);
+}
+
+template <> void Stack::push<bool>(bool value)
+{
+    lua_pushboolean(L, value);
+}
+
+template <> void Stack::push<double>(double value)
+{
+    lua_pushnumber(L, value);
+}
+
+template <> void Stack::push<const char*>(const char* s)
+{
+    lua_pushstring(L, s);
+}
+
+template <> void Stack::push<const std::string&>(const std::string& s)
+{
+    lua_pushstring(L, s.c_str());
+}
 
 } } // namespace hop::lua

@@ -4,7 +4,7 @@
 #include "lua/environment.h"
 #include "util/log.h"
 
-#include "obj.h"
+#include "loaders/obj.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
 #include "math/transform.h"
@@ -35,7 +35,7 @@ static int load_obj(lua_State* L)
     Stack s(L);
     const char* file = s.get_string(1);
     ShapeID id = obj::load(file);
-    s.push_int(id);
+    s.push<int>(id);
     return 1;
 }
 
@@ -53,7 +53,7 @@ static int vec3_tostring(lua_State* L)
     Vec3r v = s.get_vec3(1);
     std::ostringstream oss;
     oss << v;
-    s.push_string(oss.str().c_str());
+    s.push<const char*>(oss.str().c_str());
     return 1;
 }
 
@@ -88,7 +88,7 @@ static int vec3_length(lua_State* L)
 {
     Stack s(L);
     Vec3r v = s.get_vec3(1);
-    s.push_double(v.length());
+    s.push<double>(v.length());
     return 1;
 }
 
@@ -97,6 +97,15 @@ static int vec3_normalize(lua_State* L)
     Stack s(L);
     Vec3r v = s.get_vec3(1);
     s.push_vec3(v.normalize());
+    return 1;
+}
+
+static int vec3_cross(lua_State* L)
+{
+    Stack s(L);
+    Vec3r v1 = s.get_vec3(1);
+    Vec3r v2 = s.get_vec3(2);
+    s.push_vec3(cross(v1, v2));
     return 1;
 }
 
@@ -114,7 +123,7 @@ static int transform_tostring(lua_State* L)
     Transformr xfm = s.get_transform(1);
     std::ostringstream oss;
     oss << '\n' << xfm.m;
-    s.push_string(oss.str().c_str());
+    s.push<const char*>(oss.str().c_str());
     return 1;
 }
 
@@ -202,7 +211,7 @@ static int make_instance(lua_State* L)
     ShapeID id = (ShapeID)s.get_int(1);
     Transformr xfm = s.get_transform(2);
     ShapeID inst_id = ShapeManager::create<ShapeInstance>(id, xfm);
-    s.push_int(inst_id);
+    s.push<int>(inst_id);
     return 1;
 }
 
@@ -318,6 +327,7 @@ void load_api(Environment& env)
         { "__mul",      vec3_mul },
         { "length",     vec3_length },
         { "normalize",  vec3_normalize },
+        { "cross",      vec3_cross },
         { nullptr,      nullptr }
     };
     env.register_module("Vec3", vec3_funcs);

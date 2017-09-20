@@ -11,7 +11,7 @@ Camera::Camera(const Transformr& cam2world)
 {
 }
 
-void Camera::set_world_transform(const Transformr& xfm)
+void Camera::set_transform(const Transformr& xfm)
 {
     m_cam2world = xfm;
 }

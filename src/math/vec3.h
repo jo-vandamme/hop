@@ -95,6 +95,28 @@ inline Vec3<T> max(const Vec3<T>& a, const Vec3<T>& b)
     return Vec3<T>(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
 }
 
+/*
+template <>
+inline Vec3<double> min(const Vec3<double>& a, const Vec3<double>& b)
+{
+        __m256d av = _mm256_set_pd(0, a.z, a.y, a.x);
+        __m256d bv = _mm256_set_pd(0, b.z, b.y, b.x);
+        M256 minv;
+        minv.m256d = _mm256_min_pd(av, bv);
+        return Vec3<double>(minv.f64[0], minv.f64[1], minv.f64[2]);
+}
+
+template <>
+inline Vec3<double> max(const Vec3<double>& a, const Vec3<double>& b)
+{
+        __m256d av = _mm256_set_pd(0, a.z, a.y, a.x);
+        __m256d bv = _mm256_set_pd(0, b.z, b.y, b.x);
+        M256 maxv;
+        maxv.m256d = _mm256_max_pd(av, bv);
+        return Vec3<double>(maxv.f64[0], maxv.f64[1], maxv.f64[2]);
+}
+*/
+
 template <typename T>
 inline Vec3<T> rcp(const Vec3<T>& v)
 {

@@ -101,15 +101,15 @@ void World::preprocess()
 class InstAccessor
 {
 public:
-    static BBoxr get_bbox(ShapeInstance* ptr) { return ptr->get_bbox(); }
-    static Vec3r get_centroid(ShapeInstance* ptr) { return ptr->get_bbox().get_centroid(); }
+    static const BBoxr& get_bbox(ShapeInstance* ptr) { return ptr->get_bbox(); }
+    static const Vec3r& get_centroid(ShapeInstance* ptr) { return ptr->get_centroid(); }
 };
 
 class TriAccessor
 {
 public:
-    static BBoxr get_bbox(const Triangle& tri) { return tri.get_bbox(); }
-    static Vec3r get_centroid(const Triangle& tri) { return tri.get_centroid(); }
+    static const BBoxr& get_bbox(const Triangle& tri) { return tri.get_bbox(); }
+    static const Vec3r& get_centroid(const Triangle& tri) { return tri.get_centroid(); }
 };
 
 // Partition mesh instances so that each instance ends up in its own BVH leaf.

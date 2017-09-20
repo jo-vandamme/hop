@@ -35,7 +35,8 @@ public:
     virtual ShapeType get_type() const = 0;
     virtual uint32 get_num_primitives() const = 0;
     virtual bool is_instance() const = 0;
-    virtual BBoxr get_bbox() = 0;
+    virtual const BBoxr& get_bbox() const = 0;
+    virtual const Vec3r& get_centroid() const = 0;
 
     bool is_visible() const;
     void set_visible(bool visible);

@@ -261,6 +261,16 @@ Transform<T> make_lookat(const Vec3<T>& eye, const Vec3<T>& target, const Vec3<T
 }
 
 template <typename T>
+Vec3<T> get_col(const Transform<T>& m, int col)
+{
+    Vec3<T> out;
+    out[0] = m[0][col];
+    out[1] = m[1][col];
+    out[2] = m[2][col];
+    return out;
+}
+
+template <typename T>
 std::ostream& operator<<(std::ostream& os, const Transform<T>& t)
 {
     os << "[" << t.m << t.inv << "]";

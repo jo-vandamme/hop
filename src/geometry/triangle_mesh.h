@@ -24,7 +24,8 @@ public:
     uint32 get_num_primitives() const override { return m_triangles.size(); }
     bool is_instance() const override { return false; }
 
-    BBoxr get_bbox() override;
+    const BBoxr& get_bbox() const override { return m_bbox; }
+    const Vec3r& get_centroid() const override { return m_centroid; }
 
     void get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info) override;
 
@@ -34,6 +35,7 @@ private:
     std::string m_name;
     std::vector<Triangle> m_triangles;
     BBoxr m_bbox;
+    Vec3r m_centroid;
 };
 
 typedef std::shared_ptr<TriangleMesh> TriangleMeshPtr;

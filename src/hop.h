@@ -16,6 +16,8 @@
 #define RAY_TMIN 1e-2
 #define RAY_TFAR 1000
 
+#define TILES_SPIRAL
+
 #define likely(x) __builtin_expect(!!(x),1)
 #define unlikely(x) __builtin_expect(!!(x),0)
 

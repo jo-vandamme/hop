@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <mutex>
+#include <functional>
 
 namespace hop {
 
@@ -28,14 +29,15 @@ public:
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
 
 private:
+    void init_tiles_linear();
+    void init_tiles_spiral();
     void render_tile(Vec3r* buffer, uint32 tile_x, uint32 tile_y, uint32 tile_w, uint32 tile_h, uint32 spp);
     void postprocess_buffer_and_display(Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y);
-    void init_tiles();
     Vec3r get_radiance(const Ray& ray);
 
     struct TileInfo
     {
-        uint32 x, y, w, h, n;
+        int x, y, w, h, n;
     };
 
 private:
@@ -50,6 +52,9 @@ private:
     uint32 m_total_spp;
     Options m_options;
     lua::Environment* m_lua;
+    //lua::Function<void> m_lua_key_handler;
+    //lua::Function<void> m_lua_mouse_handler;
+    //lua::Function<void> m_lua_button_handler;
 };
 
 } // namespace hop

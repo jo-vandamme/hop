@@ -1,7 +1,6 @@
 
-
 options = {
-    frame_width = 800,
+    frame_width = 1024,
     frame_height = 800,
     tile_width = 64,
     tile_height = 64,
@@ -16,11 +15,8 @@ function init()
 
     shape = load_obj("/home/jo/dev/tracing/scenes/train.obj")
 
-    inst = make_instance(shape, make_scale(0.1, 0.1, 0.1))
-
     world = World.new()
-    world:add_shape(inst)
-
+    world:add_shape(make_instance(shape, make_scale(0.1, 0.1, 0.1)))
     world:preprocess()
 
     camera_desc = {
@@ -38,9 +34,17 @@ function init()
 
 end
 
-function key_handler(key)
-    print("Key handler: " .. key)
-    if string.byte(" ", 1) == key then
+function key_handler(key, action)
+    print("Key: " .. key .. " action: " .. action)
+
+    -- space pressed
+    if key == 32 and action == 1 then
         renderer:reset()
     end
+end
+
+function mouse_button_handler(button, action, mods)
+end
+
+function cursor_pos_handler(x, y)
 end

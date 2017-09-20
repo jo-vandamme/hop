@@ -20,8 +20,8 @@ public:
 
     Triangle() : material(0) { }
 
-    BBoxr get_bbox() const { return bbox; }
-    Vec3r get_centroid() const { return centroid; }
+    const BBoxr& get_bbox() const { return bbox; }
+    const Vec3r& get_centroid() const { return centroid; }
 };
 
 } // namespace hop

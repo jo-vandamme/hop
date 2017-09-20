@@ -11,8 +11,9 @@ public:
     ~Environment();
 
     void load(const char* file);
-    void execute(const char* func);
-    void execute(const char* func, int arg);
+
+    void call(const char* func, const char* sig, ...);
+
     void execute_string(const char* s);
 
     void register_function(const char* func_name, const lua_CFunction func);

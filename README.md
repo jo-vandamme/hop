@@ -17,7 +17,7 @@ Since I am developping on Linux, the code is targeted to Linux platforms for now
 ## Compiling and running
 Requires cmake and OpenMP for multithreading, Lua is built along with the project.
 
-Download & Compile:
+Download & Compile hop:
 ```
 $ git clone https://github.com/jo-va/hop.git
 $ cd hop
@@ -27,12 +27,12 @@ $ cmake ..
 $ make
 ```
 
-Run:
+Run hop:
 ```
 $ ./hop scene.lua
 ```
 
-## Example scene file
+## Example scene file, in Lua
 
 ```lua
 renderer = nil
@@ -51,8 +51,6 @@ function init()
 
     world = World.new()
     world:add_shape(shape)
-
-    -- Build the BVH tree
     world:preprocess()
 
     camera_desc = {
@@ -81,6 +79,8 @@ end
 
 ## Sample Images
 
+Most models shown here were downloaded on Free3D.
+
 Image of a tree (3.5M triangles), rendered with ambient occlusion.
 ![Tree AO](doc/images/tree_ao.png?raw=true "Tree AO")
 
@@ -90,7 +90,7 @@ The same tree, instanced 50 times (170M triangles) and rendered with depth of fi
 ![Train AO](doc/images/train_ao.png?raw=true "Train AO")
 
 ![Splash AO](doc/images/splash_ao.png?raw=true "Splash AO")
-This model was dowloaded on Free3D and is from DOSH Design.
 
+The black teeth are due to the surface normals being inverted.
 ![Skull AO](doc/images/skull_ao.png?raw=true "Skull AO")
 

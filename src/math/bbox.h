@@ -48,7 +48,7 @@ public:
         return *this;
     }
 
-    inline Vec3<T> get_centroid()
+    inline Vec3<T> get_centroid() const
     {
         return (pmin + pmax) * T(0.5);
     }

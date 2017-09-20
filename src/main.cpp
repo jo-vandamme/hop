@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
         {
             hop::lua::Environment env;
             env.load(argv[i]);
-            env.execute("init");
+            env.call("init", "");
         }
     }
     return 0;

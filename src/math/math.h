@@ -6,6 +6,7 @@
 #include <cfloat>
 #include <cstdint>
 #include <type_traits>
+#include <algorithm>
 
 #include <emmintrin.h>
 #include <xmmintrin.h>
@@ -18,6 +19,50 @@
 #endif
 
 namespace hop {
+
+struct M128
+{
+    union
+    {
+        __m128      m128;
+        __m128d     m128d;
+        __m128i     m128i;
+
+        float       f32[4];
+        double      f64[2];
+
+        int8        i8[16];
+        int16       i16[8];
+        int32       i32[4];
+        int64       i64[2];
+        uint8       u8[16];
+        uint16      u16[8];
+        uint32      u32[4];
+        uint64      u64[2];
+    };
+};
+
+struct M256
+{
+    union
+    {
+        __m256      m256;
+        __m256d     m256d;
+        __m256i     m256i;
+
+        float       f32[8];
+        double      f64[4];
+
+        int8        i8[32];
+        int16       i16[16];
+        int32       i32[8];
+        int64       i64[4];
+        uint8       u8[32];
+        uint16      u16[16];
+        uint32      u32[8];
+        uint64      u64[4];
+    };
+};
 
 template<class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_equal(T x, T y, int ulp = 1)
@@ -175,8 +220,9 @@ inline float select(bool s, float t, float f) { return s ? t : f; }
     }
 #endif
 
-inline    float min(float    a, float    b) { return a < b ? a : b; }
-inline   double min(double   a, double   b) { return a < b ? a : b; }
+/*
+//inline    float min(float    a, float    b) { return a < b ? a : b; }
+//inline   double min(double   a, double   b) { return a < b ? a : b; }
 inline   int8_t min(int8_t   a, int8_t   b) { return a < b ? a : b; }
 inline  int16_t min(int16_t  a, int16_t  b) { return a < b ? a : b; }
 inline  int32_t min(int32_t  a, int32_t  b) { return a < b ? a : b; }
@@ -185,6 +231,54 @@ inline  uint8_t min(uint8_t  a, uint8_t  b) { return a < b ? a : b; }
 inline uint16_t min(uint16_t a, uint16_t b) { return a < b ? a : b; }
 inline uint32_t min(uint32_t a, uint32_t b) { return a < b ? a : b; }
 inline uint64_t min(uint64_t a, uint64_t b) { return a < b ? a : b; }
+*/
+
+template <typename T>
+inline T min(T a, T b)
+{
+    return a < b ? a : b;
+    //return std::min(a, b);
+}
+
+template <typename T>
+inline T max(T a, T b)
+{
+    return a > b ? a : b;
+    //return std::max(a, b);
+}
+/*
+template <>
+inline float min(float left, float right)
+{
+    float ret;
+    _mm_store_ss(&ret, _mm_min_ss(_mm_set_ss(left), _mm_set_ss(right)));
+    return ret;
+}
+
+template <>
+inline float max(float left, float right)
+{
+    float ret;
+    _mm_store_ss(&ret, _mm_max_ss(_mm_set_ss(left), _mm_set_ss(right)));
+    return ret;
+}
+
+template <>
+inline double min(double left, double right)
+{
+    double ret;
+    _mm_store_sd(&ret, _mm_min_sd(_mm_set_sd(left), _mm_set_sd(right)));
+    return ret;
+}
+
+template <>
+inline double max(double left, double right)
+{
+    double ret;
+    _mm_store_sd(&ret, _mm_max_sd(_mm_set_sd(left), _mm_set_sd(right)));
+    return ret;
+}
+*/
 
 template<typename T> inline T min(const T& a, const T& b, const T& c) { return min(min(a, b), c); }
 template<typename T> inline T min(const T& a, const T& b, const T& c, const T& d) { return min(min(a, b), min(c, d)); }
@@ -194,8 +288,9 @@ template<typename T> inline T mini(const T& a, const T& b, const T& c) { return 
 template<typename T> inline T mini(const T& a, const T& b, const T& c, const T& d) { return mini(mini(a, b), mini(c, d)); }
 template<typename T> inline T mini(const T& a, const T& b, const T& c, const T& d, const T& e) { return mini(mini(mini(a, b), mini(c, d)), e); }
 
-inline    float max(float    a, float    b) { return a > b ? a : b; }
-inline   double max(double   a, double   b) { return a > b ? a : b; }
+/*
+//inline    float max(float    a, float    b) { return a > b ? a : b; }
+//inline   double max(double   a, double   b) { return a > b ? a : b; }
 inline   int8_t max(int8_t   a, int8_t   b) { return a > b ? a : b; }
 inline  int16_t max(int16_t  a, int16_t  b) { return a > b ? a : b; }
 inline  int32_t max(int32_t  a, int32_t  b) { return a > b ? a : b; }
@@ -204,6 +299,7 @@ inline  uint8_t max(uint8_t  a, uint8_t  b) { return a > b ? a : b; }
 inline uint16_t max(uint16_t a, uint16_t b) { return a > b ? a : b; }
 inline uint32_t max(uint32_t a, uint32_t b) { return a > b ? a : b; }
 inline uint64_t max(uint64_t a, uint64_t b) { return a > b ? a : b; }
+*/
 
 template<typename T> inline T max(const T& a, const T& b, const T& c) { return max(max(a, b), c); }
 template<typename T> inline T max(const T& a, const T& b, const T& c, const T& d) { return max(max(a, b), max(c, d)); }

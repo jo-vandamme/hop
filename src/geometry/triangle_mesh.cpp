@@ -15,14 +15,10 @@ TriangleMesh::TriangleMesh(const std::string& name,
                            std::vector<Triangle>& triangles)
     : m_name(name), m_triangles(std::move(triangles))
 {
-}
-
-BBoxr TriangleMesh::get_bbox()
-{
-    if (m_bbox.empty())
-        for (auto& tri : m_triangles)
-            m_bbox.merge(tri.get_bbox());
-    return m_bbox;
+    m_bbox = BBoxr();
+    for (auto& tri : m_triangles)
+        m_bbox.merge(tri.get_bbox());
+    m_centroid = m_bbox.get_centroid();
 }
 
 void TriangleMesh::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info)

@@ -216,7 +216,7 @@ public:
         for (auto& object : items)
         {
             const Vec3r center = Accessor::get_centroid(object);
-            const BBoxr bbox = Accessor::get_bbox(object);
+            const BBoxr& bbox = Accessor::get_bbox(object);
 
             if (center[axis] < split_point)
             {

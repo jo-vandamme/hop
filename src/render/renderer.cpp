@@ -26,19 +26,27 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
     , m_world(world), m_camera(camera), m_num_tiles_drawn(0), m_total_spp(0), m_options(options)
 {
-    m_window->set_key_handler([&](int key, int scancode, int action, int mods)
+    m_window->set_key_handler([&](int key, int /*scancode*/, int action, int /*mods*/)
     {
-        (void)scancode; (void)mods;
+        if (m_lua)
+            m_lua->call("key_handler", "ii", key, action);
+
         if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
-        {
             m_window->set_should_close(true);
-        }
-        else if (action == GLFW_PRESS)
-        {
-            if (m_lua)
-                m_lua->execute("key_handler", key);
-        }
     });
+
+    m_window->set_cursor_pos_handler([&](double x, double y)
+    {
+        if (m_lua)
+            m_lua->call("cursor_pos_handler", "dd", x, y);
+    });
+
+    m_window->set_mouse_button_handler([&](int button, int action, int mods)
+    {
+        if (m_lua)
+            m_lua->call("mouse_button_handler", "iii", button, action, mods);
+    });
+
     m_window->init();
 }
 
@@ -57,10 +65,63 @@ void Renderer::reset()
         for (uint32 j = 0; j < m_options.frame_size.x; ++j)
             m_accum_buffer[i * m_options.frame_size.x + j] = Vec3r(0, 0, 0);
 
-    init_tiles();
+#ifdef TILES_SPIRAL
+    init_tiles_spiral();
+#else
+    init_tiles_linear();
+#endif
 }
 
-void Renderer::init_tiles()
+void Renderer::init_tiles_spiral()
+{
+    std::unique_lock<std::mutex> lock(m_tiles_mutex);
+
+    m_tiles.clear();
+    const int fw = m_options.frame_size.x;
+    const int fh = m_options.frame_size.y;
+    const int tw = m_options.tile_size.x;
+    const int th = m_options.tile_size.y;
+
+    // This function gets a tile coordinate and calculates the
+    // corresponding tile, if the tile is non-empty, it pushed into the list
+    auto make_tile = [&](int i, int j)
+    {
+        TileInfo tile;
+        tile.n = 0;
+        tile.x = (int)max(0.0f, min(((float)i - 1.0f) * tw + (float)fw / 2.0f, (float)fw));
+        tile.y = (int)max(0.0f, min(((float)j - 1.0f) * th + (float)fh / 2.0f, (float)fh));
+        tile.w = min(fw - tile.x, tw);
+        tile.h = min(fh - tile.y, th);
+
+        if (tile.w != 0 && tile.h != 0)
+            m_tiles.push_back(tile);
+    };
+
+    int X = fw / tw + 2;
+    int Y = fh / th + 2;
+    int x, y, dx, dy;
+    x = y = dx = 0;
+    dy = -1;
+
+    int t = max(X, Y);
+    int max_iters = t * t;
+
+    for (int i = 0; i < max_iters; ++i)
+    {
+        make_tile(x, y);
+
+        if ((x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1-y)))
+        {
+            t = dx;
+            dx = -dy;
+            dy = t;
+        }
+        x += dx;
+        y += dy;
+    }
+}
+
+void Renderer::init_tiles_linear()
 {
     std::unique_lock<std::mutex> lock(m_tiles_mutex);
 
@@ -85,7 +146,11 @@ void Renderer::init_tiles()
 
 int Renderer::render(bool interactive)
 {
-    init_tiles();
+#ifdef TILES_SPIRAL
+    init_tiles_spiral();
+#else
+    init_tiles_linear();
+#endif
 
     std::atomic<bool> rendering_done(false);
     std::atomic<bool> tile_done(false);
@@ -119,13 +184,13 @@ int Renderer::render(bool interactive)
                 render_tile(&buffer[0], tile.x, tile.y, tile.w, tile.h, spp);
 
                 m_framebuffer_mutex.lock();
-                for (uint32 i = 0; i < tile.h; ++i)
+                for (int i = 0; i < tile.h; ++i)
                 {
-                    for (uint32 j = 0; j < tile.w; ++j)
+                    for (int j = 0; j < tile.w; ++j)
                     {
                         uint32 idx = (tile.y + i) * m_options.frame_size.x + tile.x + j;
                         Real n = (Real)tile.n;
-                        m_accum_buffer[idx] = (m_accum_buffer[idx] * (n - 1) + buffer[i * tile.w + j]) * rcp(n);
+                        m_accum_buffer[idx] = (m_accum_buffer[idx] * (n - spp) + buffer[i * tile.w + j]) * rcp(n);
                     }
                 }
                 m_framebuffer_mutex.unlock();
@@ -255,7 +320,7 @@ void Renderer::render_tile(Vec3r* buffer, uint32 tile_x, uint32 tile_y, uint32 t
                 color = color + get_radiance(ray) * ray_w;
 
             }
-            buffer[idx] = buffer[idx] + color * rcp((Real)spp);
+            buffer[idx] = buffer[idx] + color;// * rcp((Real)spp);
         }
     }
 }

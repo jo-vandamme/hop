@@ -18,7 +18,8 @@ public:
     Camera(const Transformr& cam2world);
     virtual ~Camera() { Log("camera") << DEBUG << "camera deleted"; }
 
-    void set_world_transform(const Transformr& xfm);
+    Transformr get_transform() const { return m_cam2world; }
+    void set_transform(const Transformr& xfm);
 
     void rotate(const Vec3r& axis, Real angle);
     void translate(const Vec3r& delta);

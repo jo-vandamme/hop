@@ -48,11 +48,15 @@ function init()
 
 end
 
-function key_handler(key)
-
-    print("Key handler called (" .. key .. ")")
-    if string.byte(" ", 1) == key then
+function key_handler(key, action)
+    print("Key handler: " .. key .. " " .. action)
+    if string.byte(" ", 1) == key and action == 1 then
         renderer:reset()
     end
+end
 
+function mouse_button_handler(button, action, mods)
+end
+
+function cursor_pos_handler(x, y)
 end

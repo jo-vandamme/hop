@@ -1,5 +1,7 @@
 bin/
 build/
+build_clang/
 archive/
 models/
+*.o
 
