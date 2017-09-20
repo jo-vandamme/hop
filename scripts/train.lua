@@ -4,7 +4,9 @@ options = {
     frame_height = 800,
     tile_width = 64,
     tile_height = 64,
-    samples_per_pixel = 10
+    spp = 10,
+    preview_spp = 1,
+    preview = true
 }
 
 renderer = nil

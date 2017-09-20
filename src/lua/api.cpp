@@ -360,19 +360,24 @@ static int renderer_ctor(lua_State* L)
     lua_getfield(L, 3, "frame_height");
     lua_getfield(L, 3, "tile_width");
     lua_getfield(L, 3, "tile_height");
-    lua_getfield(L, 3, "samples_per_pixel");
+    lua_getfield(L, 3, "spp");
+    lua_getfield(L, 3, "preview_spp");
+    lua_getfield(L, 3, "preview");
 
-    int spp = s.get_int(-1);
-    int th = s.get_int(-2);
-    int tw = s.get_int(-3);
-    int fh = s.get_int(-4);
-    int fw = s.get_int(-5);
-    s.pop(5);
+    bool preview = s.get_bool(-1);
+    int prev_spp = s.get_int(-2);
+    int spp = s.get_int(-3);
+    int th = s.get_int(-4);
+    int tw = s.get_int(-5);
+    int fh = s.get_int(-6);
+    int fw = s.get_int(-7);
+    s.pop(7);
 
     Options opts;
     opts.frame_size = Vec2u(fw, fh);
     opts.tile_size = Vec2u(tw, th);
     opts.tile_spp = spp;
+    opts.tile_preview_spp = prev_spp;
 
     std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(world, cam, opts);
     renderer->set_lua_environment(g_environment);

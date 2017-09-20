@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hop.h"
+#include "types.h"
 #include <cmath>
 #include <limits>
 #include <cfloat>
@@ -63,6 +64,8 @@ struct M256
         uint64      u64[4];
     };
 };
+
+int log2(int n);
 
 template <typename T>
 bool is_power_of_2(T x)

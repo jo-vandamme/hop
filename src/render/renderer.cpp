@@ -185,6 +185,8 @@ int Renderer::render(bool interactive)
     {
         render_threads.push_back(std::thread([&]()
         {
+            std::unique_ptr<Vec3r[]> buffer = std::make_unique<Vec3r[]>(m_options.tile_size.x * m_options.tile_size.y);
+
             while (!rendering_done)
             {
                 if (!interactive && m_next_free_tile >= m_tiles.size())
@@ -198,7 +200,6 @@ int Renderer::render(bool interactive)
                 m_tiles_mutex.unlock();
 
                 bool reset = false;
-                std::unique_ptr<Vec3r[]> buffer = std::make_unique<Vec3r[]>(tile.w * tile.h);
                 uint32 num_samples = render_tile(&buffer[0], tile, info, m_options.tile_spp, reset);
 
                 // Increase the sample count for this tile
@@ -310,17 +311,26 @@ inline Vec3r Renderer::get_radiance(const Ray& ray)
     return occlusion;
 }
 
+// Renders a subtile, spp rays are shot from the tile to determine the tile's uniform color
 void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp)
 {
     Vec3r color(0, 0, 0);
     for (uint32 k = 0; k < spp; ++k)
     {
-        Ray ray;
+        // Generate the samples according to a tent filter
+        Real r1 = 2 * random<Real>();
+        Real r2 = 2 * random<Real>();
+        Real dx = r1 < 1 ? sqrt(r1) - 1: 1 - sqrt(2 - r1);
+        Real dy = r2 < 1 ? sqrt(r2) - 1: 1 - sqrt(2 - r2);
+        dx = (dx + 1) * 0.5;
+        dy = (dy + 1) * 0.5;
+
         CameraSample sample;
         sample.lens_point = Vec2r(random<Real>(), random<Real>());
-        sample.film_point = Vec2r((Real)(tile.x + subtile.x) + random<Real>() * (Real)subtile.w,
-                                  (Real)(tile.y + subtile.y) + random<Real>() * (Real)subtile.h);
+        sample.film_point = Vec2r((Real)(tile.x + subtile.x) + dx * (Real)subtile.w,
+                                  (Real)(tile.y + subtile.y) + dy * (Real)subtile.h);
 
+        Ray ray;
         Real ray_w = m_camera->generate_ray(sample, &ray);
         color = color + get_radiance(ray) * ray_w;
     }
@@ -335,6 +345,7 @@ void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subti
     }
 }
 
+// Recursively renders the four subtiles of a tile
 void Renderer::render_subtile_corners(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp)
 {
     if (subtile.w <= res)
@@ -355,23 +366,30 @@ void Renderer::render_subtile_corners(Vec3r* buffer, const Tile& tile, const Til
     }
 }
 
+// Render a tile with the given number of samples per pixel
+// The method returns the actual number of spp used, which may be different in preview mode
 uint32 Renderer::render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset)
 {
-    bool preview = (tile.w == tile.h) && is_power_of_2(tile.w);
-    uint32 first_iter_accum = __builtin_ffs(tile.w) - 1;
+    bool preview = m_options.preview && (tile.w == tile.h) && is_power_of_2(tile.w);
 
-    if (preview && info.num_iters <= first_iter_accum)
+    // If the tile is square and the size is a power of 2
+    // then we can offer a preview of the render by rendering using
+    // a resolution a one sample per tile and increasing the resolution by 4 (2 for x and y)
+    // at each call to render_tile.
+    if (preview && info.num_iters <= (uint32)log2(tile.w))
     {
+        // we ask for a framebuffer reset after each iteration
+        reset = true;
+        spp = m_options.tile_preview_spp;
+
         uint32 res = tile.w / (1 << info.num_iters);
         Tile subtile = { 0, 0, tile.w, tile.h };
         render_subtile_corners(buffer, tile, subtile, res, spp);
-        reset = true;
     }
+    // Once the final resolution is reached, we can render normally
     else
     {
-        if (preview && info.num_iters == first_iter_accum + 1)
-            reset = true;
-
+        // Render each pixel
         for (uint32 j = 0; j < tile.h; ++j)
         {
             for (uint32 i = 0; i < tile.w; ++i)
@@ -381,10 +399,10 @@ uint32 Renderer::render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& in
             }
         }
     }
-
     return spp;
 }
 
+// Copy the accumulation buffer to the screen an apply the neccessary postprocessing
 void Renderer::postprocess_buffer_and_display(
         Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y)
 {

@@ -8,9 +8,10 @@ This is a work in progress, only done on my spare time.
 ## Features
 - OBJ model loading
 - Instancing
+- Depth of field
 - Data driven configuration via Lua
 - Interactive tiled rendering
-- Depth of field
+- Improved interactivity with adaptative resolution when the render starts
 
 Since I am developping on Linux, the code is targeted to Linux platforms for now, but supporting Windows/Mac OS should not be too difficult.
 
