@@ -6,10 +6,11 @@ This is a work in progress, only done on my spare time.
 [![Build status](https://travis-ci.org/jo-va/hop.svg?branch=master)](https://travis-ci.org/jo-va/hop)
 
 ## Features
+- Multithreaded rendering and BVH building
 - OBJ model loading
 - Instancing
 - Depth of field
-- Data driven configuration via Lua
+- Data driven scene and render configuration via Lua
 - Interactive tiled rendering
 - Improved interactivity with adaptative resolution when the render starts
 
