@@ -49,12 +49,10 @@ private:
     std::unique_ptr<Vec3r[]> m_accum_buffer;
     std::vector<TileInfo> m_tiles;
     std::atomic<uint32> m_num_tiles_drawn;
+    uint32 m_next_free_tile;
     uint32 m_total_spp;
     Options m_options;
     lua::Environment* m_lua;
-    //lua::Function<void> m_lua_key_handler;
-    //lua::Function<void> m_lua_mouse_handler;
-    //lua::Function<void> m_lua_button_handler;
 };
 
 } // namespace hop

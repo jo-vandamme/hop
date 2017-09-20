@@ -7,6 +7,7 @@
 #include "loaders/obj.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
+#include "math/bbox.h"
 #include "math/transform.h"
 #include "geometry/world.h"
 #include "geometry/shape_manager.h"
@@ -35,7 +36,7 @@ static int load_obj(lua_State* L)
     Stack s(L);
     const char* file = s.get_string(1);
     ShapeID id = obj::load(file);
-    s.push<int>(id);
+    s.push_shape(id);
     return 1;
 }
 
@@ -53,7 +54,7 @@ static int vec3_tostring(lua_State* L)
     Vec3r v = s.get_vec3(1);
     std::ostringstream oss;
     oss << v;
-    s.push<const char*>(oss.str().c_str());
+    s.push_string(oss.str().c_str());
     return 1;
 }
 
@@ -88,7 +89,7 @@ static int vec3_length(lua_State* L)
 {
     Stack s(L);
     Vec3r v = s.get_vec3(1);
-    s.push<double>(v.length());
+    s.push_double(v.length());
     return 1;
 }
 
@@ -109,6 +110,58 @@ static int vec3_cross(lua_State* L)
     return 1;
 }
 
+static int bbox_ctor(lua_State* L)
+{
+    Stack s(L);
+    Vec3r pmin = s.get_vec3(1);
+    Vec3r pmax = s.get_vec3(2);
+    s.push_bbox(BBoxr(pmin, pmax));
+    return 1;
+}
+
+static int bbox_merge(lua_State* L)
+{
+    Stack s(L);
+    BBoxr b1 = s.get_bbox(1);
+    BBoxr b2 = s.get_bbox(2);
+    s.push_bbox(merge(b1, b2));
+    return 1;
+}
+
+static int bbox_min(lua_State* L)
+{
+    Stack s(L);
+    BBoxr b = s.get_bbox(1);
+    s.push_vec3(b.pmin);
+    return 1;
+}
+
+static int bbox_max(lua_State* L)
+{
+    Stack s(L);
+    BBoxr b = s.get_bbox(1);
+    s.push_vec3(b.pmax);
+    return 1;
+}
+
+static int bbox_centroid(lua_State* L)
+{
+    Stack s(L);
+    BBoxr b = s.get_bbox(1);
+    s.push_vec3(b.get_centroid());
+    return 1;
+}
+
+static int bbox_tostring(lua_State* L)
+{
+    Stack s(L);
+    BBoxr b = s.get_bbox(1);
+    std::ostringstream oss;
+    oss << b;
+    s.push_string(oss.str().c_str());
+    return 1;
+}
+
 static int transform_ctor(lua_State* L)
 {
     Stack s(L);
@@ -123,7 +176,7 @@ static int transform_tostring(lua_State* L)
     Transformr xfm = s.get_transform(1);
     std::ostringstream oss;
     oss << '\n' << xfm.m;
-    s.push<const char*>(oss.str().c_str());
+    s.push_string(oss.str().c_str());
     return 1;
 }
 
@@ -164,19 +217,59 @@ static int make_lookat_transform(lua_State* L)
     return 1;
 }
 
-static int world_ctor(lua_State* L)
-{
-    Stack s(L);
-    auto world = std::make_shared<World>();
-    s.push_world(world);
-    return 1;
-}
-
 static int make_scale_transform(lua_State* L)
 {
     Stack s(L);
     Transformr xfm = make_scale(Vec3r(s.get_double(1), s.get_double(2), s.get_double(3)));
     s.push_transform(xfm);
+    return 1;
+}
+
+static int make_rotation_x_transform(lua_State* L)
+{
+    Stack s(L);
+    Transformr xfm = make_rotation_x(s.get_double(1));
+    s.push_transform(xfm);
+    return 1;
+}
+
+static int make_rotation_y_transform(lua_State* L)
+{
+    Stack s(L);
+    Transformr xfm = make_rotation_y(s.get_double(1));
+    s.push_transform(xfm);
+    return 1;
+}
+
+static int make_rotation_z_transform(lua_State* L)
+{
+    Stack s(L);
+    Transformr xfm = make_rotation_z(s.get_double(1));
+    s.push_transform(xfm);
+    return 1;
+}
+
+static int make_rotation_transform(lua_State* L)
+{
+    Stack s(L);
+    Transformr xfm = make_rotation(s.get_vec3(1), s.get_double(2));
+    s.push_transform(xfm);
+    return 1;
+}
+
+static int shape_get_bbox(lua_State* L)
+{
+    Stack s(L);
+    ShapeID id = s.get_shape(1);
+    s.push_bbox(ShapeManager::get<Shape>(id)->get_bbox());
+    return 1;
+}
+
+static int world_ctor(lua_State* L)
+{
+    Stack s(L);
+    auto world = std::make_shared<World>();
+    s.push_world(world);
     return 1;
 }
 
@@ -192,9 +285,17 @@ static int world_add_shape(lua_State* L)
 {
     Stack s(L);
     auto world = s.get_world(1);
-    ShapeID shape = (ShapeID)s.get_int(2);
+    ShapeID shape = s.get_shape(2);
     world->add_shape(shape);
     return 0;
+}
+
+static int world_get_bbox(lua_State* L)
+{
+    Stack s(L);
+    auto world = s.get_world(1);
+    s.push_bbox(world->get_bbox());
+    return 1;
 }
 
 static int world_preprocess(lua_State* L)
@@ -208,10 +309,10 @@ static int world_preprocess(lua_State* L)
 static int make_instance(lua_State* L)
 {
     Stack s(L);
-    ShapeID id = (ShapeID)s.get_int(1);
+    ShapeID id = s.get_shape(1);
     Transformr xfm = s.get_transform(2);
     ShapeID inst_id = ShapeManager::create<ShapeInstance>(id, xfm);
-    s.push<int>(inst_id);
+    s.push_shape(inst_id);
     return 1;
 }
 
@@ -332,6 +433,17 @@ void load_api(Environment& env)
     };
     env.register_module("Vec3", vec3_funcs);
 
+    const luaL_Reg bbox_funcs[] = {
+        { "new",          bbox_ctor },
+        { "merge",        bbox_merge },
+        { "min",          bbox_min },
+        { "max",          bbox_max },
+        { "get_centroid", bbox_centroid },
+        { "__tostring",   bbox_tostring },
+        { nullptr,        nullptr }
+    };
+    env.register_module("BBox", bbox_funcs);
+
     const luaL_Reg transform_funcs[] = {
         { "new",        transform_ctor },
         { "ident",      transform_ctor },
@@ -342,6 +454,16 @@ void load_api(Environment& env)
     };
     env.register_module("Transform", transform_funcs);
 
+    const luaL_Reg shape_funcs[] = {
+        { "get_bbox",   shape_get_bbox },
+        { nullptr,      nullptr }
+    };
+    env.register_module("Shape", shape_funcs);
+
+    env.register_function("make_rotation_x", make_rotation_x_transform);
+    env.register_function("make_rotation_y", make_rotation_y_transform);
+    env.register_function("make_rotation_z", make_rotation_z_transform);
+    env.register_function("make_rotation", make_rotation_transform);
     env.register_function("make_scale", make_scale_transform);
     env.register_function("make_translation", make_translation_transform);
     env.register_function("make_lookat", make_lookat_transform);
@@ -350,6 +472,7 @@ void load_api(Environment& env)
         { "new",        world_ctor },
         { "__gc",       world_dtor },
         { "add_shape",  world_add_shape },
+        { "get_bbox",   world_get_bbox },
         { "preprocess", world_preprocess },
         { nullptr,      nullptr }
     };

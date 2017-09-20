@@ -24,7 +24,8 @@ namespace hop {
 
 Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
-    , m_world(world), m_camera(camera), m_num_tiles_drawn(0), m_total_spp(0), m_options(options)
+    , m_world(world), m_camera(camera), m_num_tiles_drawn(0), m_next_free_tile(0)
+    , m_total_spp(0), m_options(options)
 {
     m_window->set_key_handler([&](int key, int /*scancode*/, int action, int /*mods*/)
     {
@@ -59,7 +60,7 @@ void Renderer::set_camera(std::shared_ptr<Camera> camera)
 void Renderer::reset()
 {
     m_total_spp = 0;
-    std::unique_lock<std::mutex> lock(m_framebuffer_mutex);
+    std::unique_lock<std::mutex> fb_lock(m_framebuffer_mutex);
 
     for (uint32 i = 0; i < m_options.frame_size.y; ++i)
         for (uint32 j = 0; j < m_options.frame_size.x; ++j)
@@ -70,6 +71,10 @@ void Renderer::reset()
 #else
     init_tiles_linear();
 #endif
+
+    std::unique_lock<std::mutex> tiles_lock(m_tiles_mutex);
+    m_next_free_tile = 0;
+    m_num_tiles_drawn = 0;
 }
 
 void Renderer::init_tiles_spiral()
@@ -140,8 +145,6 @@ void Renderer::init_tiles_linear()
             m_tiles.push_back(tile);
         }
     }
-
-    m_num_tiles_drawn = 0;
 }
 
 int Renderer::render(bool interactive)
@@ -154,7 +157,7 @@ int Renderer::render(bool interactive)
 
     std::atomic<bool> rendering_done(false);
     std::atomic<bool> tile_done(false);
-    uint32 next_free_tile = 0;
+    m_next_free_tile = 0;
 
     m_accum_buffer = std::make_unique<Vec3r[]>(m_options.frame_size.x * m_options.frame_size.y);
     std::memset(&m_accum_buffer[0], 0, m_options.frame_size.x * m_options.frame_size.y * sizeof(Vec3r));
@@ -169,12 +172,12 @@ int Renderer::render(bool interactive)
         {
             while (!rendering_done)
             {
-                if (!interactive && next_free_tile >= m_tiles.size())
+                if (!interactive && m_next_free_tile >= m_tiles.size())
                     break;
 
                 // get a tile and render it
                 m_tiles_mutex.lock();
-                uint32 tile_idx = next_free_tile++ % m_tiles.size();
+                uint32 tile_idx = m_next_free_tile++ % m_tiles.size();
                 const uint32 spp = m_options.tile_spp;
                 m_tiles[tile_idx].n += spp;
                 TileInfo tile = m_tiles[tile_idx];

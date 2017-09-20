@@ -1,15 +1,14 @@
 #pragma once
 
 #include "lua/lua.h"
-
 #include "math/vec3.h"
+#include "math/bbox.h"
 #include "math/transform.h"
 #include "geometry/world.h"
 #include "camera/camera.h"
 #include "render/renderer.h"
 
 #include <memory>
-#include <string>
 
 namespace hop { namespace lua {
 
@@ -18,8 +17,24 @@ class Stack
 public:
     Stack(lua_State* L) : L(L) { }
 
-    template <typename T> void push(T value)
+    void push_int(int value)
     {
+        lua_pushinteger(L, value);
+    }
+
+    void push_bool(bool value)
+    {
+        lua_pushboolean(L, value);
+    }
+
+    void push_double(double value)
+    {
+        lua_pushnumber(L, value);
+    }
+
+    void push_string(const char* s)
+    {
+        lua_pushstring(L, s);
     }
 
     void push_vec3(const Vec3r& v)
@@ -30,11 +45,27 @@ public:
         lua_setmetatable(L, -2);
     }
 
+    void push_bbox(const BBoxr& b)
+    {
+        BBoxr* b_ptr = (BBoxr*)lua_newuserdata(L, sizeof(BBoxr));
+        *b_ptr = b;
+        luaL_getmetatable(L, "BBox");
+        lua_setmetatable(L, -2);
+    }
+
     void push_transform(const Transformr& xfm)
     {
         Transformr* t_ptr = (Transformr*)lua_newuserdata(L, sizeof(Transformr));
         *t_ptr = xfm;
         luaL_getmetatable(L, "Transform");
+        lua_setmetatable(L, -2);
+    }
+
+    void push_shape(const ShapeID id)
+    {
+        ShapeID* id_ptr = (ShapeID*)lua_newuserdata(L, sizeof(ShapeID));
+        *id_ptr = id;
+        luaL_getmetatable(L, "Shape");
         lua_setmetatable(L, -2);
     }
 
@@ -90,9 +121,19 @@ public:
         return *((Vec3r*)luaL_checkudata(L, i, "Vec3"));
     }
 
+    BBoxr get_bbox(int i)
+    {
+        return *((BBoxr*)luaL_checkudata(L, i, "BBox"));
+    }
+
     Transformr get_transform(int i)
     {
         return *((Transformr*)luaL_checkudata(L, i, "Transform"));
+    }
+
+    ShapeID get_shape(int i)
+    {
+        return *((ShapeID*)luaL_checkudata(L, i, "Shape"));
     }
 
     std::shared_ptr<World> get_world(int i)
@@ -118,30 +159,5 @@ public:
 private:
     lua_State* L;
 };
-
-template <> void Stack::push<int>(int value)
-{
-    lua_pushinteger(L, value);
-}
-
-template <> void Stack::push<bool>(bool value)
-{
-    lua_pushboolean(L, value);
-}
-
-template <> void Stack::push<double>(double value)
-{
-    lua_pushnumber(L, value);
-}
-
-template <> void Stack::push<const char*>(const char* s)
-{
-    lua_pushstring(L, s);
-}
-
-template <> void Stack::push<const std::string&>(const std::string& s)
-{
-    lua_pushstring(L, s.c_str());
-}
 
 } } // namespace hop::lua

@@ -11,21 +11,29 @@ renderer = nil
 
 function init()
 
-    print("Skull scene")
-
-    shape = load_obj("/home/jo/dev/tracing/scenes/train.obj")
+    print("Enter OBJ file to load:")
+    obj = io.read()
+    shape = load_obj(obj)
 
     world = World.new()
-    world:add_shape(make_instance(shape, make_scale(0.1, 0.1, 0.1)))
+    world:add_shape(shape)
+
+    bbox = shape:get_bbox()
+    centroid = bbox:get_centroid()
+
+    target = centroid
+    d = (bbox:max() - bbox:min()):length()
+    eye = target + Vec3.new(0, 0, d * 1.5)
+
     world:preprocess()
 
     camera_desc = {
-        transform = make_lookat(Vec3.new(50, 30, 50), Vec3.new(0, 0, 0), Vec3.new(0, 1, 0)),
+        transform = make_lookat(eye, target, Vec3.new(0, 1, 0)),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
         lens_radius = 0.0,
-        focal_distance = 40
+        focal_distance = (eye - target):length()
     }
     camera = Camera.make_perspective(camera_desc)
 
