@@ -1,11 +1,12 @@
 
+
 options = {
-    frame_width = 1000,
+    frame_width = 1024,
     frame_height = 800,
     tile_width = 64,
     tile_height = 64,
     spp = 10,
-    preview_spp = 10,
+    preview_spp = 1,
     preview = true
 }
 
@@ -13,21 +14,30 @@ renderer = nil
 
 function init()
 
-    print("Skull scene")
-
-    shape = load_obj("/home/jo/dev/tracing/scenes/train.obj")
+    print("Enter OBJ file to load:")
+    -- model from patrix on sketchfab
+    -- https://sketchfab.com/models/faed84a829114e378be255414a7826ca#
+    shape = load_obj("/home/jo/dev/tracing/scenes/cathedral/combined02.obj")
 
     world = World.new()
-    world:add_shape(make_instance(shape, make_scale(0.1, 0.1, 0.1)))
+    world:add_shape(shape)
+
+    bbox = shape:get_bbox()
+    centroid = bbox:get_centroid()
+
+    target = centroid
+    d = (bbox:max() - bbox:min()):length()
+    eye = target + Vec3.new(-d * 0.9, d * 0.4, -d * 0.8)
+
     world:preprocess()
 
     camera_desc = {
-        transform = make_lookat(Vec3.new(50, 30, 50), Vec3.new(0, 0, 0), Vec3.new(0, 1, 0)),
+        transform = make_lookat(eye, target, Vec3.new(0, 1, 0)),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
         lens_radius = 0.0,
-        focal_distance = 40
+        focal_distance = (eye - target):length()
     }
     camera = Camera.make_perspective(camera_desc)
 

@@ -11,10 +11,10 @@
 #define MIN_PRIMS_PER_LEAF 8
 #define NUM_SAH_SPLITS 20
 #define BVH_TRAV_COST 0.25
-#define NUM_AO_RAYS 10
-#define RAY_EPSILON 1e-6
+#define NUM_AO_RAYS 5
+#define RAY_EPSILON 1e-14
 #define RAY_TMIN 1e-2
-#define RAY_TFAR 1000
+#define RAY_TFAR 1e6
 
 #define TILES_SPIRAL
 

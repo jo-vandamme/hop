@@ -42,7 +42,7 @@ public:
         if (!m_log_off && !m_stream.str().empty())
         {
             m_stream << std::endl;
-            std::cerr << m_stream.str();
+            std::cerr << '\r' << m_stream.str();
         }
     }
 

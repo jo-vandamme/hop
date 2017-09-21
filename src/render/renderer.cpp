@@ -1,6 +1,7 @@
 #include "hop.h"
 #include "render/renderer.h"
 #include "render/gl_window.h"
+#include "render/drawing.h"
 #include "geometry/world.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
@@ -25,7 +26,7 @@ namespace hop {
 
 Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
-    , m_world(world), m_camera(camera), m_num_tiles_drawn(0), m_next_free_tile(0)
+    , m_world(world), m_camera(camera), m_last_tile_drawn(0), m_next_free_tile(0)
     , m_total_spp(0), m_options(options)
 {
     m_integrator = std::make_unique<AmbientOcclusionIntegrator>(m_world);
@@ -72,7 +73,7 @@ void Renderer::reset()
 
     m_total_spp = 0;
     m_next_free_tile = 0;
-    m_num_tiles_drawn = 0;
+    m_last_tile_drawn = 0;
 
     for (uint32 i = 0; i < m_tiles_infos.size(); ++i)
     {
@@ -100,14 +101,17 @@ void Renderer::init_tiles_spiral()
     // corresponding tile, if the tile is non-empty, it pushed into the list
     auto make_tile = [&](int i, int j)
     {
-        Tile tile;
-        tile.x = (int)max(0.0f, min(((float)i - 1.0f) * tw + (float)fw / 2.0f, (float)fw));
-        tile.y = (int)max(0.0f, min(((float)j - 1.0f) * th + (float)fh / 2.0f, (float)fh));
-        tile.w = min(fw - (float)tile.x, (float)tw);
-        tile.h = min(fh - (float)tile.y, (float)th);
+        int x = ((float)i - 0.5f) * tw + (float)fw / 2.0f;
+        int y = ((float)j - 0.5f) * th + (float)fh / 2.0f;
 
-        if (tile.w != 0 && tile.h != 0)
+        if (x + tw >= 0 && x < fw && y + th >= 0 && y < fh)
         {
+            Tile tile;
+            tile.x = max(0, x);
+            tile.y = max(0, y);
+            tile.w = min(fw - x, tw);
+            tile.h = min(fh - y, th);
+
             m_tiles.push_back(tile);
             m_tiles_infos.push_back(info);
         }
@@ -231,7 +235,7 @@ int Renderer::render(bool interactive)
                 }
                 m_framebuffer_mutex.unlock();
                 tile_done = true;
-                ++m_num_tiles_drawn;
+                m_last_tile_drawn = tile_idx;
             }
         }));
     }
@@ -241,21 +245,22 @@ int Renderer::render(bool interactive)
     StopWatch timer;
     timer.start();
 
+    uint32 last_iter = 0;
+    uint32 num_samples = 0;
+    uint32 rays_per_s = 0;
+
     // Poll the window events and update the framebuffer
     while (!m_window->should_close())
     {
         m_window->poll_events();
 
-        float elapsed_time = (float)timer.get_elapsed_time_ms();
-        if (elapsed_time > 1000.0f)
+        TileInfo tile_info = m_tiles_infos[0];
+        if (tile_info.num_samples > 1 && tile_info.num_iters != last_iter)
         {
-            int num_rays = m_num_tiles_drawn * m_options.tile_size.x * m_options.tile_size.y * m_options.tile_spp;
-            float rays_per_s = 1000.0f * num_rays / timer.get_elapsed_time_ms();
-
-            Log("render") << INFO << m_total_spp << " spp - "
-                                  << std::fixed << std::setprecision(3) << rays_per_s * 0.001f << " krays/s";
-
-            m_num_tiles_drawn = 0;
+            uint32 num_rays = m_options.frame_size.x * m_options.frame_size.y * (tile_info.num_samples - num_samples);
+            rays_per_s = num_rays / timer.get_elapsed_time_ms();
+            num_samples = tile_info.num_samples;
+            last_iter = tile_info.num_iters;
             timer.start();
         }
 
@@ -267,6 +272,18 @@ int Renderer::render(bool interactive)
             postprocess_buffer_and_display(
                     framebuffer, &m_accum_buffer[0],
                     m_options.frame_size.x, m_options.frame_size.y);
+
+            draw::Buffer<Vec3f> buf;
+            buf.buffer = framebuffer;
+            buf.pitch = m_options.frame_size.x;
+            buf.width = m_options.frame_size.x;
+            buf.height = m_options.frame_size.y;
+            std::ostringstream oss;
+            oss << num_samples << " spp - " << rays_per_s << " krays/s";
+
+            draw::bar(buf, Vec2u(0, 0), Vec2u(200, 30), Vec3f(0, 0, 0));
+            draw::print(buf, oss.str().c_str(), Vec2u(10, 10), Vec3f(1, 1, 1));
+
             m_window->unmap_framebuffer();
 
             m_window->swap_buffers();
@@ -315,23 +332,26 @@ void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subti
 }
 
 // Recursively renders the four subtiles of a tile
-void Renderer::render_subtile_corners(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp)
+void Renderer::render_subtile_divide(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp)
 {
-    if (subtile.w <= res)
+    if (subtile.w <= res && subtile.h <= res)
     {
         render_subtile(buffer, tile, subtile, spp);
     }
     else
     {
-        uint32 size = subtile.w / 2;
-        Tile corner0 = { subtile.x,        subtile.y,        size, size };
-        Tile corner1 = { subtile.x + size, subtile.y,        size, size };
-        Tile corner2 = { subtile.x,        subtile.y + size, size, size };
-        Tile corner3 = { subtile.x + size, subtile.y + size, size, size };
-        render_subtile_corners(buffer, tile, corner0, res, spp);
-        render_subtile_corners(buffer, tile, corner1, res, spp);
-        render_subtile_corners(buffer, tile, corner2, res, spp);
-        render_subtile_corners(buffer, tile, corner3, res, spp);
+        uint32 wl = subtile.w / 2;
+        uint32 wr = subtile.w - wl;
+        uint32 hb = subtile.h / 2;
+        uint32 ht = subtile.h - hb;
+        Tile cbl = { subtile.x,      subtile.y,      wl, hb };
+        Tile cbr = { subtile.x + wl, subtile.y,      wr, hb };
+        Tile ctl = { subtile.x,      subtile.y + hb, wl, ht };
+        Tile ctr = { subtile.x + wl, subtile.y + hb, wr, ht };
+        if (cbl.w && cbl.h) render_subtile_divide(buffer, tile, cbl, res, spp);
+        if (cbr.w && cbr.h) render_subtile_divide(buffer, tile, cbr, res, spp);
+        if (ctl.w && ctl.h) render_subtile_divide(buffer, tile, ctl, res, spp);
+        if (ctr.w && ctr.h) render_subtile_divide(buffer, tile, ctr, res, spp);
     }
 }
 
@@ -339,21 +359,18 @@ void Renderer::render_subtile_corners(Vec3r* buffer, const Tile& tile, const Til
 // The method returns the actual number of spp used, which may be different in preview mode
 uint32 Renderer::render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset)
 {
-    bool preview = m_options.preview && (tile.w == tile.h) && is_power_of_2(tile.w);
-
-    // If the tile is square and the size is a power of 2
-    // then we can offer a preview of the render by rendering using
+    // Give a preview of the render by rendering using
     // a resolution a one sample per tile and increasing the resolution by 4 (2 for x and y)
     // at each call to render_tile.
-    if (preview && info.num_iters <= (uint32)log2(tile.w))
+    if (m_options.preview && info.num_iters <= (uint32)max(log2(tile.w), log2(tile.h)))
     {
         // we ask for a framebuffer reset after each iteration
         reset = true;
         spp = m_options.tile_preview_spp;
 
-        uint32 res = tile.w / (1 << info.num_iters);
+        uint32 res = max(1u, max(tile.w, tile.h) / (1 << info.num_iters));
         Tile subtile = { 0, 0, tile.w, tile.h };
-        render_subtile_corners(buffer, tile, subtile, res, spp);
+        render_subtile_divide(buffer, tile, subtile, res, spp);
     }
     // Once the final resolution is reached, we can render normally
     else
