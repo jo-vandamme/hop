@@ -79,15 +79,18 @@ void TrackBall::on_motion(double x, double y)
 
     if (m_rotating && (x != m_last_pos.x || y != m_last_pos.y))
     {
-        Vec3r right = normalize(cross(m_eye - m_target, m_up));
-        Vec3r diff = normalize(right) * (x - m_last_pos.x) + normalize(m_up) * (y - m_last_pos.y);
+        Vec3r forward = normalize(m_eye - m_target);
+        Vec3r right = normalize(cross(forward, m_up));
+        m_up = normalize(cross(right, forward));
+        Vec3r diff = right * (x - m_last_pos.x) + m_up * (y - m_last_pos.y);
         m_eye = m_eye + diff * m_motion_sensitivity;
         m_dirty = true;
     }
     else if (m_panning && (x != m_last_pos.x || y != m_last_pos.y))
     {
-        Vec3r right = normalize(cross(m_eye - m_target, m_up));
-        Vec3r diff = normalize(right) * (x - m_last_pos.x) + normalize(m_up) * (y - m_last_pos.y);
+        Vec3r forward = normalize(m_eye - m_target);
+        Vec3r right = normalize(cross(forward, m_up));
+        Vec3r diff = right * (x - m_last_pos.x) + m_up * (y - m_last_pos.y);
         m_eye    = m_eye    + diff * m_motion_sensitivity;
         m_target = m_target + diff * m_motion_sensitivity;
         m_dirty = true;
@@ -96,7 +99,8 @@ void TrackBall::on_motion(double x, double y)
     {
         Vec2r diff = Vec2r(x, y) - m_last_pos;
         Real zoom_sign = (Real)sign(max_abs_component(diff));
-        m_eye = m_eye + normalize(m_eye - m_target) * zoom_sign * m_zoom_sensitivity;
+        Vec3r forward = normalize(m_eye - m_target);
+        m_eye = m_eye + forward * zoom_sign * m_zoom_sensitivity;
         m_dirty = true;
     }
 }
