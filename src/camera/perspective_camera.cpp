@@ -30,10 +30,10 @@ Vec2r concentric_sample_disk(const Vec2r& u)
 }
 
 PerspectiveCamera::PerspectiveCamera(
-        const Transformr& cam2world, const Vec2u& film_res,
+        const Vec3r& eye, const Vec3r& target, const Vec3r& up, const Vec2u& film_res,
         Real fovy, Real lens_radius, Real focal_distance, Real near, Real far)
     : ProjectiveCamera(
-            cam2world, make_perspective(fovy, near, far),
+            eye, target, up, make_perspective(fovy, near, far),
             film_res, lens_radius, focal_distance)
     , m_near(near), m_far(far)
 {

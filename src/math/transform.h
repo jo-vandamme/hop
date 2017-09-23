@@ -237,36 +237,36 @@ Transform<T> make_perspective(const T fovy, const T n, const T f)
     T inv_den = rcp(f - n);
     T s = rcp(tan(deg2rad(fovy) * 0.5));
 
-    Mat4<T> persp(s, 0,  0,               0,
-                  0, s,  0,               0,
-                  0, 0, -f * inv_den,    -1,
-                  0, 0, -f * n * inv_den, 0);
+    Mat4<T> persp(s, 0, 0,             0,
+                  0, s, 0,             0,
+                  0, 0, -f * inv_den, -f * n * inv_den,
+                  0, 0, -1,            0);
 
-    return Transform<T>(transpose(persp));
+    return Transform<T>(persp);
 }
 
 template <typename T>
 Transform<T> make_lookat(const Vec3<T>& eye, const Vec3<T>& target, const Vec3<T>& up)
 {
     Vec3<T> f = normalize(eye - target);
-    Vec3<T> r = normalize(cross(normalize(up), f));
-    Vec3<T> u = cross(f, r);
+    Vec3<T> l = normalize(cross(normalize(up), f));
+    Vec3<T> u = cross(f, l);
 
-    Mat4<T> lookat(r.x, r.y, r.z, 0,
-                   u.x, u.y, u.z, 0,
-                   f.x, f.y, f.z, 0,
-                   eye.x, eye.y, eye.z, 1);
+    Mat4<T> lookat(l.x, u.x, f.x, eye.x,
+                   l.y, u.y, f.y, eye.y,
+                   l.z, u.z, f.z, eye.z,
+                   0,   0,   0,   1);
 
-    return Transform<T>(transpose(lookat));
+    return Transform<T>(lookat);
 }
 
 template <typename T>
 Vec3<T> get_col(const Transform<T>& m, int col)
 {
     Vec3<T> out;
-    out[0] = m[0][col];
-    out[1] = m[1][col];
-    out[2] = m[2][col];
+    out[0] = m.m[0][col];
+    out[1] = m.m[1][col];
+    out[2] = m.m[2][col];
     return out;
 }
 

@@ -32,7 +32,9 @@ function init()
     world:preprocess()
 
     camera_desc = {
-        transform = make_lookat(Vec3.new(0, 0, 10), Vec3.new(0, 0, 0), Vec3.new(0, 1, 0)),
+        eye = Vec3.new(0, 0, 10),
+        target = Vec3.new(0, 0, 0),
+        up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 130,
@@ -48,8 +50,8 @@ function init()
 end
 
 function key_handler(key, action)
-    print("Key handler: " .. key .. " " .. action)
-    if string.byte(" ", 1) == key and action == 1 then
+    -- space pressed
+    if key == 32 and action == 1 then
         renderer:reset()
     end
 end

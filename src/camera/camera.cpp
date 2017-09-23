@@ -1,32 +1,34 @@
 #include "hop.h"
 #include "camera/camera.h"
-#include "math/math.h"
 #include "math/vec3.h"
 #include "math/transform.h"
 
 namespace hop {
 
-Camera::Camera(const Transformr& cam2world)
-    : m_cam2world(cam2world)
+Camera::Camera(const Vec3r& eye, const Vec3r& target, const Vec3r& up)
+    : m_eye(eye), m_target(target), m_up(up)
 {
+    update_transform();
 }
 
-void Camera::set_transform(const Transformr& xfm)
+void Camera::set_eye(const Vec3r& eye)
 {
-    m_cam2world = xfm;
+    m_eye = eye;
 }
 
-void Camera::rotate(const Vec3r& axis, Real angle)
+void Camera::set_target(const Vec3r& target)
 {
-    if (almost_equal(angle, Real(0)))
-        return;
-
-    m_cam2world = make_rotation(axis, angle) * m_cam2world;
+    m_target = target;
 }
 
-void Camera::translate(const Vec3r& delta)
+void Camera::set_up(const Vec3r& up)
 {
-    m_cam2world = make_translation(delta) * m_cam2world;
+    m_up = up;
+}
+
+void Camera::update_transform()
+{
+    m_cam2world = make_lookat(m_eye, m_target, m_up);
 }
 
 } // namespace hop

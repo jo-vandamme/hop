@@ -6,9 +6,10 @@
 namespace hop {
 
 ProjectiveCamera::ProjectiveCamera(
-        const Transformr& cam2world, const Transformr& cam2screen,
+        const Vec3r& eye, const Vec3r& target, const Vec3r& up,
+        const Transformr& cam2screen,
         const Vec2u& film_res, Real lens_radius, Real focal_dist)
-    : Camera(cam2world), m_cam2screen(cam2screen)
+    : Camera(eye, target, up), m_cam2screen(cam2screen)
     , m_lens_radius(lens_radius), m_focal_distance(focal_dist)
 {
     Real res = film_res.x < film_res.y ? (Real)film_res.x : (Real)film_res.y;

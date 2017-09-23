@@ -1,9 +1,9 @@
 
 options = {
-    frame_width = 800,
-    frame_height = 800,
-    tile_width = 64,
-    tile_height = 64,
+    frame_width = 600,
+    frame_height = 600,
+    tile_width = 32,
+    tile_height = 32,
     spp = 1,
     preview_spp = 1,
     preview = true
@@ -13,27 +13,29 @@ renderer = nil
 
 function init()
 
-    print("Skull scene")
+    print("Hop example.lua script file init() function.")
 
-    shape = load_obj("/home/jo/dev/tracing/scenes/Maybach_DS8_Zeppelin_OBJ.obj")
+    shape = load_obj("/home/jo/dev/tracing/hop/models/suzanne.obj")
 
     world = World.new()
-    world:add_shape(make_instance(shape, make_scale(0.2, 0.2, 0.2)))
+    world:add_shape(shape)
+
     world:preprocess()
 
     camera_desc = {
-        eye = Vec3.new(40, 30, 50),
+        eye = Vec3.new(3, 3, 3),
         target = Vec3.new(0, 0, 0),
         up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
-        fov = 90,
+        fov = 130,
         lens_radius = 0.0,
-        focal_distance = 40
+        focal_distance = 10
     }
     camera = Camera.make_perspective(camera_desc)
 
     renderer = Renderer.new(world, camera, options)
+
     renderer:render_interactive()
 
 end

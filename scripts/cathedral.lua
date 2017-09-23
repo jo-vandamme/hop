@@ -1,10 +1,10 @@
 
 
 options = {
-    frame_width = 1024,
+    frame_width = 800,
     frame_height = 800,
-    tile_width = 64,
-    tile_height = 64,
+    tile_width = 32,
+    tile_height = 32,
     spp = 10,
     preview_spp = 1,
     preview = true
@@ -14,7 +14,6 @@ renderer = nil
 
 function init()
 
-    print("Enter OBJ file to load:")
     -- model from patrix on sketchfab
     -- https://sketchfab.com/models/faed84a829114e378be255414a7826ca#
     shape = load_obj("/home/jo/dev/tracing/scenes/cathedral/combined02.obj")
@@ -32,7 +31,9 @@ function init()
     world:preprocess()
 
     camera_desc = {
-        transform = make_lookat(eye, target, Vec3.new(0, 1, 0)),
+        eye = eye,
+        target = target,
+        up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
@@ -47,8 +48,6 @@ function init()
 end
 
 function key_handler(key, action)
-    print("Key: " .. key .. " action: " .. action)
-
     -- space pressed
     if key == 32 and action == 1 then
         renderer:reset()

@@ -7,6 +7,7 @@
 #include "util/stop_watch.h"
 #include "camera/camera.h"
 #include "camera/camera_sample.h"
+#include "camera/trackball.h"
 #include "math/math.h"
 #include "math/mat4.h"
 #include "math/vec2.h"
@@ -27,12 +28,20 @@ namespace hop {
 Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
     , m_world(world), m_camera(camera), m_last_tile_drawn(0), m_next_free_tile(0)
-    , m_total_spp(0), m_options(options)
+    , m_total_spp(0), m_ctrl_pressed(false), m_options(options)
 {
     m_integrator = std::make_unique<AmbientOcclusionIntegrator>(m_world);
+    m_trackball = std::make_unique<TrackBall>(m_camera, this);
 
     m_window->set_key_handler([&](int key, int /*scancode*/, int action, int /*mods*/)
     {
+        if (action == GLFW_PRESS && key == GLFW_KEY_LEFT_CONTROL)
+            m_ctrl_pressed = true;
+        else if (action == GLFW_RELEASE && key == GLFW_KEY_LEFT_CONTROL)
+            m_ctrl_pressed = false;
+        else if (action == GLFW_PRESS && key == GLFW_KEY_HOME)
+            m_trackball->reset();
+
         if (m_lua)
             m_lua->call("key_handler", "ii", key, action);
 
@@ -42,23 +51,23 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
 
     m_window->set_cursor_pos_handler([&](double x, double y)
     {
+        if (m_ctrl_pressed)
+            m_trackball->on_motion(x, y);
         if (m_lua)
             m_lua->call("cursor_pos_handler", "dd", x, y);
     });
 
     m_window->set_mouse_button_handler([&](int button, int action, int mods)
     {
+        if (m_ctrl_pressed && action == GLFW_PRESS)
+            m_trackball->on_button_down(button);
+        else if (m_ctrl_pressed && action == GLFW_RELEASE)
+            m_trackball->on_button_up(button);
         if (m_lua)
             m_lua->call("mouse_button_handler", "iii", button, action, mods);
     });
 
     m_window->init();
-}
-
-void Renderer::set_camera(std::shared_ptr<Camera> camera)
-{
-    m_camera = camera;
-    reset();
 }
 
 void Renderer::reset()
@@ -249,10 +258,14 @@ int Renderer::render(bool interactive)
     uint32 num_samples = 0;
     uint32 rays_per_s = 0;
 
+    StopWatch loop_timer;
+    loop_timer.start();
+
     // Poll the window events and update the framebuffer
     while (!m_window->should_close())
     {
         m_window->poll_events();
+        m_trackball->update(loop_timer.get_elapsed_time_ms());
 
         TileInfo tile_info = m_tiles_infos[0];
         if (tile_info.num_samples > 1 && tile_info.num_iters != last_iter)

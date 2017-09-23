@@ -10,7 +10,8 @@ namespace hop {
 class ProjectiveCamera : public Camera
 {
 public:
-    ProjectiveCamera(const Transformr& cam2world, const Transformr& cam2screen,
+    ProjectiveCamera(const Vec3r& eye, const Vec3r& target, const Vec3r& up,
+                     const Transformr& cam2screen,
                      const Vec2u& film_res, Real lens_radius, Real focal_dist);
 
 protected:

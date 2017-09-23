@@ -147,6 +147,14 @@ inline T max_component(const Vec2<T>& v)
 }
 
 template <typename T>
+inline T max_abs_component(const Vec2<T>& v)
+{
+    T out = v.x;
+    if (abs(v.y) > abs(v.x)) out = v.y;
+    return out;
+}
+
+template <typename T>
 std::ostream& operator<<(std::ostream& os, const Vec2<T>& v)
 {
     os << "(" << v.x << " " << v.y << ")";

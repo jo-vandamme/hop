@@ -3,6 +3,7 @@
 #include "types.h"
 #include "options.h"
 #include "camera/camera.h"
+#include "camera/trackball.h"
 #include "geometry/world.h"
 #include "geometry/ray.h"
 #include "render/gl_window.h"
@@ -24,7 +25,6 @@ public:
     ~Renderer() { Log("renderer") << DEBUG << "renderer deleted"; }
 
     int render(bool interactive = true);
-    void set_camera(std::shared_ptr<Camera> camera);
     void reset();
 
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
@@ -53,6 +53,7 @@ private:
     std::unique_ptr<GLWindow> m_window;
     std::shared_ptr<World> m_world;
     std::shared_ptr<Camera> m_camera;
+    std::unique_ptr<TrackBall> m_trackball;
     std::mutex m_framebuffer_mutex;
     std::mutex m_tiles_mutex;
     std::unique_ptr<Vec3r[]> m_accum_buffer;
@@ -62,6 +63,7 @@ private:
     std::unique_ptr<Integrator> m_integrator;
     uint32 m_next_free_tile;
     uint32 m_total_spp;
+    bool m_ctrl_pressed;
     Options m_options;
     lua::Environment* m_lua;
 };

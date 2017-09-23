@@ -320,23 +320,27 @@ static int camera_make_perspective(lua_State* L)
 {
     Stack s(L);
     luaL_checktype(L, 1, LUA_TTABLE);
-    lua_getfield(L, 1, "transform");
+    lua_getfield(L, 1, "eye");
+    lua_getfield(L, 1, "target");
+    lua_getfield(L, 1, "up");
     lua_getfield(L, 1, "frame_width");
     lua_getfield(L, 1, "frame_height");
     lua_getfield(L, 1, "fov");
     lua_getfield(L, 1, "lens_radius");
     lua_getfield(L, 1, "focal_distance");
 
-    Transformr xfm = s.get_transform(-6);
+    Vec3r eye = s.get_vec3(-8);
+    Vec3r target = s.get_vec3(-7);
+    Vec3r up = s.get_vec3(-6);
     double w = s.get_double(-5);
     double h = s.get_double(-4);
     double fov = s.get_double(-3);
     double lensr = s.get_double(-2);
     double dist = s.get_double(-1);
-    s.pop(6);
+    s.pop(8);
 
     std::shared_ptr<PerspectiveCamera> cam =
-        std::make_shared<PerspectiveCamera>(xfm, Vec2u(w, h), fov, lensr, dist);
+        std::make_shared<PerspectiveCamera>(eye, target, up, Vec2u(w, h), fov, lensr, dist);
     s.push_camera(std::dynamic_pointer_cast<Camera>(cam));
 
     return 1;
@@ -400,15 +404,6 @@ static int renderer_render_interactive(lua_State* L)
     Stack s(L);
     auto renderer = s.get_renderer(1);
     renderer->render(true);
-    return 0;
-}
-
-static int renderer_set_camera(lua_State* L)
-{
-    Stack s(L);
-    auto renderer = s.get_renderer(1);
-    auto camera = s.get_camera(2);
-    renderer->set_camera(camera);
     return 0;
 }
 
@@ -497,7 +492,6 @@ void load_api(Environment& env)
         { "new",                renderer_ctor },
         { "__gc",               renderer_dtor },
         { "render_interactive", renderer_render_interactive },
-        { "set_camera",         renderer_set_camera },
         { "reset",              renderer_reset },
         { nullptr,              nullptr }
     };
