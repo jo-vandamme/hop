@@ -17,9 +17,10 @@ public:
     };
 
     Film(uint32 w, uint32 h);
+
     void add_sample(uint32 x, uint32 y, const Vec3r& color);
     void reset_pixel(uint32 x, uint32 y);
-    void reset();
+
     Pixel* get_pixels() { return &m_image[0]; }
 
 private:

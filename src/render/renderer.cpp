@@ -110,7 +110,6 @@ void Renderer::reset()
     std::unique_lock<std::mutex> tiles_lock(m_tiles_mutex);
 
     m_next_free_tile = 0;
-
     for (uint32 i = 0; i < m_tiles.size(); ++i)
         m_tiles[i].n = 0;
 }
@@ -303,7 +302,7 @@ void Renderer::render_tile(const Tile& tile, uint32 spp)
         {
             for (uint32 i = 0; i < tile.w; ++i)
             {
-                Tile tile_to_render = { tile.x, tile.y, 1, 1, 0 };
+                Tile tile_to_render = { tile.x + i, tile.y + j, 1, 1, 0 };
                 render_subtile(tile_to_render, spp, false);
             }
         }
@@ -314,7 +313,7 @@ void Renderer::render_tile(const Tile& tile, uint32 spp)
 void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x, uint32 size_y)
 {
     const Film::Pixel* pixels = m_film->get_pixels();
-    float inv_gamma = 1.0f / 2.2f;
+    const float inv_gamma = 1.0f / 2.2f;
 
     for (uint32 i = 0; i < size_y; ++i)
     {
