@@ -12,13 +12,14 @@ namespace hop {
 
 TrackBall::TrackBall(std::shared_ptr<Camera> camera, Renderer* renderer)
     : m_camera(camera), m_renderer(renderer)
-    , m_motion_sensitivity(0.01), m_zoom_sensitivity(0.1)
     , m_update_last_pos(false), m_dirty(false)
     , m_rotating(false), m_panning(false), m_zooming(false)
 {
     m_orig_eye    = m_camera->get_eye();
     m_orig_target = m_camera->get_target();
     m_orig_up     = m_camera->get_up();
+    m_motion_sensitivity = length(m_orig_eye - m_orig_target) * 0.0001;
+    m_zoom_sensitivity   = length(m_orig_eye - m_orig_target) * 0.01;
 }
 
 TrackBall::~TrackBall()

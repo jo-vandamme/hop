@@ -13,6 +13,7 @@ This is a work in progress, only done on my spare time.
 - Data driven scene and render configuration via Lua
 - Interactive tiled rendering
 - Improved interactivity with adaptative resolution when the render starts
+- Trackball camera
 
 Since I am developping on Linux, the code is targeted to Linux platforms for now, but supporting Windows/Mac OS should not be too difficult.
 
@@ -31,7 +32,7 @@ $ make
 
 Run hop:
 ```
-$ ./hop scene.lua
+$ ./hop -s scene.lua
 ```
 
 ## Example scene file, in Lua
@@ -41,6 +42,7 @@ renderer = nil
 
 function init()
 
+    -- The render options
     options = {
         frame_width = 800,
         frame_height = 800,
@@ -55,6 +57,8 @@ function init()
 
     world = World.new()
     world:add_shape(shape)
+
+    -- Build the acceleration structures, this will take some time
     world:preprocess()
 
     camera_desc = {
@@ -74,12 +78,19 @@ function init()
 
 end
 
-function key_handler(key)
-
-    if string.byte(" ", 1) == key then
+function key_handler(key, action)
+    -- space key pressed
+    if key == 32 and action == 1 then
         renderer:reset()
     end
+end
 
+function mouse_button_handler(button, action, mods)
+    -- do nothing
+end
+
+function cursor_pos_handler(x, y)
+    -- do nothing
 end
 ```
 
