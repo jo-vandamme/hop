@@ -31,6 +31,8 @@ public:
 
     const std::vector<Triangle>& get_triangles() const { return m_triangles; }
 
+    void clear_triangles() { m_triangles.clear(); }
+
 private:
     std::string m_name;
     std::vector<Triangle> m_triangles;

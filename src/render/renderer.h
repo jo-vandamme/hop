@@ -7,6 +7,8 @@
 #include "geometry/world.h"
 #include "geometry/ray.h"
 #include "render/gl_window.h"
+#include "render/film.h"
+#include "render/tile.h"
 #include "math/vec3.h"
 #include "lua/environment.h"
 #include "util/log.h"
@@ -30,39 +32,22 @@ public:
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
 
 private:
-    struct Tile
-    {
-        uint32 x, y, w, h;
-    };
+    void render_tile(const Tile& tile, uint32 spp);
+    void render_subtile(const Tile& tile, uint32 spp, bool reset);
+    void render_subtile_divide(const Tile& tile, const Tile& subtile, uint32 res, uint32 spp, bool reset);
 
-    struct TileInfo
-    {
-        uint32 num_iters, num_samples;
-    };
-
-    void init_tiles_linear();
-    void init_tiles_spiral();
-
-    uint32 render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset);
-    void render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp);
-    void render_subtile_divide(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp);
-
-    void postprocess_buffer_and_display(Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y);
+    void postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x, uint32 size_y);
 
 private:
     std::unique_ptr<GLWindow> m_window;
     std::shared_ptr<World> m_world;
     std::shared_ptr<Camera> m_camera;
     std::unique_ptr<TrackBall> m_trackball;
-    std::mutex m_framebuffer_mutex;
     std::mutex m_tiles_mutex;
-    std::unique_ptr<Vec3r[]> m_accum_buffer;
+    std::unique_ptr<Film> m_film;
     std::vector<Tile> m_tiles;
-    std::vector<TileInfo> m_tiles_infos;
-    std::atomic<uint32> m_last_tile_drawn;
     std::unique_ptr<Integrator> m_integrator;
     uint32 m_next_free_tile;
-    uint32 m_total_spp;
     bool m_ctrl_pressed;
     Options m_options;
     lua::Environment* m_lua;

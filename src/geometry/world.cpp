@@ -274,6 +274,8 @@ void World::partition_meshes()
              bvh::SAHStrategy<Triangle, TriAccessor>>::build(
                 mesh->get_triangles(), MIN_PRIMS_PER_LEAF, tri_leaf_cb);
 
+        mesh->clear_triangles();
+
         // For all instances that point to this mesh, set their bvh_root to this mesh
         const std::vector<uint32>& instances = kv.second;
         int32 offset = (int32)m_bvh_nodes.size();

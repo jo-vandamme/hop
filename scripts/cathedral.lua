@@ -3,9 +3,9 @@
 options = {
     frame_width = 800,
     frame_height = 800,
-    tile_width = 32,
-    tile_height = 32,
-    spp = 10,
+    tile_width = 16,
+    tile_height = 16,
+    spp = 20,
     preview_spp = 1,
     preview = true
 }

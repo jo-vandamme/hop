@@ -2,6 +2,8 @@
 #include "render/renderer.h"
 #include "render/gl_window.h"
 #include "render/drawing.h"
+#include "render/film.h"
+#include "render/tile.h"
 #include "geometry/world.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
@@ -12,7 +14,9 @@
 #include "math/mat4.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
+#include "integrators/path_integrator.h"
 #include "integrators/ambient_occlusion.h"
+#include "integrators/debug_integrator.h"
 #include "options.h"
 #include "types.h"
 
@@ -27,20 +31,51 @@ namespace hop {
 
 Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
-    , m_world(world), m_camera(camera), m_last_tile_drawn(0), m_next_free_tile(0)
-    , m_total_spp(0), m_ctrl_pressed(false), m_options(options)
+    , m_world(world), m_camera(camera), m_next_free_tile(0)
+    , m_ctrl_pressed(false), m_options(options)
 {
-    m_integrator = std::make_unique<AmbientOcclusionIntegrator>(m_world);
+    m_integrator = std::make_unique<PathIntegrator>(m_world);
     m_trackball = std::make_unique<TrackBall>(m_camera, this);
 
     m_window->set_key_handler([&](int key, int /*scancode*/, int action, int /*mods*/)
     {
         if (action == GLFW_PRESS && key == GLFW_KEY_LEFT_CONTROL)
+        {
             m_ctrl_pressed = true;
+        }
         else if (action == GLFW_RELEASE && key == GLFW_KEY_LEFT_CONTROL)
+        {
             m_ctrl_pressed = false;
+        }
         else if (action == GLFW_PRESS && key == GLFW_KEY_HOME)
+        {
             m_trackball->reset();
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_O)
+        {
+            m_integrator = std::make_unique<AmbientOcclusionIntegrator>(m_world);
+            reset();
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_N)
+        {
+            m_integrator = std::make_unique<DebugIntegrator>(m_world, DebugIntegrator::NORMALS);
+            reset();
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_P)
+        {
+            m_integrator = std::make_unique<DebugIntegrator>(m_world, DebugIntegrator::POSITION);
+            reset();
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_U)
+        {
+            m_integrator = std::make_unique<DebugIntegrator>(m_world, DebugIntegrator::UVS);
+            reset();
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_T)
+        {
+            m_integrator = std::make_unique<PathIntegrator>(m_world);
+            reset();
+        }
 
         if (m_lua)
             m_lua->call("key_handler", "ii", key, action);
@@ -72,125 +107,29 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
 
 void Renderer::reset()
 {
-    std::unique_lock<std::mutex> fb_lock(m_framebuffer_mutex);
-
-    for (uint32 i = 0; i < m_options.frame_size.y; ++i)
-        for (uint32 j = 0; j < m_options.frame_size.x; ++j)
-            m_accum_buffer[i * m_options.frame_size.x + j] = Vec3r(0, 0, 0);
-
     std::unique_lock<std::mutex> tiles_lock(m_tiles_mutex);
 
-    m_total_spp = 0;
     m_next_free_tile = 0;
-    m_last_tile_drawn = 0;
 
-    for (uint32 i = 0; i < m_tiles_infos.size(); ++i)
-    {
-        m_tiles_infos[i].num_iters = 0;
-        m_tiles_infos[i].num_samples = 0;
-    }
-}
-
-void Renderer::init_tiles_spiral()
-{
-    std::unique_lock<std::mutex> lock(m_tiles_mutex);
-
-    m_tiles.clear();
-    m_tiles_infos.clear();
-    const int fw = m_options.frame_size.x;
-    const int fh = m_options.frame_size.y;
-    const int tw = m_options.tile_size.x;
-    const int th = m_options.tile_size.y;
-
-    TileInfo info;
-    info.num_samples = 0;
-    info.num_iters = 0;
-
-    // This function gets a tile coordinate and calculates the
-    // corresponding tile, if the tile is non-empty, it pushed into the list
-    auto make_tile = [&](int i, int j)
-    {
-        int x = ((float)i - 0.5f) * tw + (float)fw / 2.0f;
-        int y = ((float)j - 0.5f) * th + (float)fh / 2.0f;
-
-        if (x + tw >= 0 && x < fw && y + th >= 0 && y < fh)
-        {
-            Tile tile;
-            tile.x = max(0, x);
-            tile.y = max(0, y);
-            tile.w = min(fw - x, tw);
-            tile.h = min(fh - y, th);
-
-            m_tiles.push_back(tile);
-            m_tiles_infos.push_back(info);
-        }
-    };
-
-    int X = fw / tw + 2;
-    int Y = fh / th + 2;
-    int x, y, dx, dy;
-    x = y = dx = 0;
-    dy = -1;
-
-    int t = max(X, Y);
-    int max_iters = t * t;
-
-    for (int i = 0; i < max_iters; ++i)
-    {
-        make_tile(x, y);
-
-        if ((x == y) || ((x < 0) && (x == -y)) || ((x > 0) && (x == 1-y)))
-        {
-            t = dx;
-            dx = -dy;
-            dy = t;
-        }
-        x += dx;
-        y += dy;
-    }
-}
-
-void Renderer::init_tiles_linear()
-{
-    std::unique_lock<std::mutex> lock(m_tiles_mutex);
-
-    m_tiles.clear();
-    m_tiles_infos.clear();
-
-    TileInfo info;
-    info.num_samples = 0;
-    info.num_iters = 0;
-
-    for (uint32 y = 0; y < m_options.frame_size.y; y += m_options.tile_size.y)
-    {
-        Tile tile;
-        tile.y = y;
-        tile.h = min(m_options.frame_size.y - y, m_options.tile_size.y);
-
-        for (uint32 x = 0; x < m_options.frame_size.x; x += m_options.tile_size.x)
-        {
-            tile.x = x;
-            tile.w = min(m_options.frame_size.x - x, m_options.tile_size.x);
-            m_tiles.push_back(tile);
-            m_tiles_infos.push_back(info);
-        }
-    }
+    for (uint32 i = 0; i < m_tiles.size(); ++i)
+        m_tiles[i].n = 0;
 }
 
 int Renderer::render(bool interactive)
 {
 #ifdef TILES_SPIRAL
-    init_tiles_spiral();
+    m_tiles = make_tiles_spiral(m_options.frame_size.x, m_options.frame_size.y,
+                                m_options.tile_size.x, m_options.tile_size.y);
 #else
-    init_tiles_linear();
+    m_tiles = make_tiles_linear(m_options.frame_size.x, m_options.frame_size.y,
+                                m_options.tile_size.x, m_options.tile_size.y);
 #endif
 
     std::atomic<bool> rendering_done(false);
     std::atomic<bool> tile_done(false);
     m_next_free_tile = 0;
 
-    m_accum_buffer = std::make_unique<Vec3r[]>(m_options.frame_size.x * m_options.frame_size.y);
-    std::memset(&m_accum_buffer[0], 0, m_options.frame_size.x * m_options.frame_size.y * sizeof(Vec3r));
+    m_film = std::make_unique<Film>(m_options.frame_size.x, m_options.frame_size.y);
 
     // Spawn the render threads
     int num_threads = std::thread::hardware_concurrency() - 1;
@@ -200,8 +139,6 @@ int Renderer::render(bool interactive)
     {
         render_threads.push_back(std::thread([&]()
         {
-            std::unique_ptr<Vec3r[]> buffer = std::make_unique<Vec3r[]>(m_options.tile_size.x * m_options.tile_size.y);
-
             while (!rendering_done)
             {
                 if (!interactive && m_next_free_tile >= m_tiles.size())
@@ -211,40 +148,16 @@ int Renderer::render(bool interactive)
                 m_tiles_mutex.lock();
                 uint32 tile_idx = m_next_free_tile++ % m_tiles.size();
                 Tile tile = m_tiles[tile_idx];
-                TileInfo info = m_tiles_infos[tile_idx];
                 m_tiles_mutex.unlock();
 
-                bool reset = false;
-                uint32 num_samples = render_tile(&buffer[0], tile, info, m_options.tile_spp, reset);
+                render_tile(tile, m_options.tile_spp);
 
                 // Increase the sample count for this tile
                 m_tiles_mutex.lock();
-                if (reset)
-                    m_tiles_infos[tile_idx].num_samples = 0;
-                m_tiles_infos[tile_idx].num_samples += num_samples;
-                ++m_tiles_infos[tile_idx].num_iters;
-                uint32 total_samples = m_tiles_infos[tile_idx].num_samples;
+                ++m_tiles[tile_idx].n;
                 m_tiles_mutex.unlock();
 
-                if (tile_idx == 0)
-                    m_total_spp = total_samples;
-
-                // Add the tile buffer to the accumulator and scale the value accordingly
-                m_framebuffer_mutex.lock();
-                for (uint32 i = 0; i < tile.h; ++i)
-                {
-                    for (uint32 j = 0; j < tile.w; ++j)
-                    {
-                        uint32 idx = (tile.y + i) * m_options.frame_size.x + tile.x + j;
-                        m_accum_buffer[idx] = reset ?
-                            buffer[i * tile.w + j] * rcp((Real)num_samples) :
-                            (m_accum_buffer[idx] * (Real)(total_samples - num_samples) +
-                             buffer[i * tile.w + j]) * rcp((Real)total_samples);
-                    }
-                }
-                m_framebuffer_mutex.unlock();
                 tile_done = true;
-                m_last_tile_drawn = tile_idx;
             }
         }));
     }
@@ -254,9 +167,8 @@ int Renderer::render(bool interactive)
     StopWatch timer;
     timer.start();
 
-    uint32 last_iter = 0;
-    uint32 num_samples = 0;
     uint32 rays_per_s = 0;
+    uint32 num_samples = 0;
 
     StopWatch loop_timer;
     loop_timer.start();
@@ -267,8 +179,8 @@ int Renderer::render(bool interactive)
         m_window->poll_events();
         m_trackball->update(loop_timer.get_elapsed_time_ms());
 
-        TileInfo tile_info = m_tiles_infos[0];
-        if (tile_info.num_samples > 1 && tile_info.num_iters != last_iter)
+        /*TileInfo tile_info = m_tiles_infos[0];
+        if (tile_info.num_iters != last_iter)
         {
             uint32 num_rays = m_options.frame_size.x * m_options.frame_size.y * (tile_info.num_samples - num_samples);
             rays_per_s = num_rays / timer.get_elapsed_time_ms();
@@ -276,15 +188,14 @@ int Renderer::render(bool interactive)
             last_iter = tile_info.num_iters;
             timer.start();
         }
+        */
 
         if (tile_done)
         {
             tile_done = false;
             // copy tile to framebuffer and swap the window's framebuffer
             Vec3f* framebuffer = (Vec3f*)m_window->map_framebuffer();
-            postprocess_buffer_and_display(
-                    framebuffer, &m_accum_buffer[0],
-                    m_options.frame_size.x, m_options.frame_size.y);
+            postprocess_buffer_and_display(framebuffer, m_options.frame_size.x, m_options.frame_size.y);
 
             draw::Buffer<Vec3f> buf;
             buf.buffer = framebuffer;
@@ -310,46 +221,48 @@ int Renderer::render(bool interactive)
     return 0;
 }
 
-// Renders a subtile, spp rays are shot from the tile to determine the tile's uniform color
-void Renderer::render_subtile(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 spp)
+// Renders a tile, spp rays are shot from the tile to determine the tile's uniform color
+void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset)
 {
     Vec3r color(0, 0, 0);
+    Real rcp_spp = rcp((Real)spp);
     for (uint32 k = 0; k < spp; ++k)
     {
         // Generate the samples according to a tent filter
         Real r1 = 2 * random<Real>();
         Real r2 = 2 * random<Real>();
-        Real dx = r1 < 1 ? sqrt(r1) - 1: 1 - sqrt(2 - r1);
-        Real dy = r2 < 1 ? sqrt(r2) - 1: 1 - sqrt(2 - r2);
+        Real dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+        Real dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
         dx = (dx + 1) * 0.5;
         dy = (dy + 1) * 0.5;
 
         CameraSample sample;
         sample.lens_point = Vec2r(random<Real>(), random<Real>());
-        sample.film_point = Vec2r((Real)(tile.x + subtile.x) + dx * (Real)subtile.w,
-                                  (Real)(tile.y + subtile.y) + dy * (Real)subtile.h);
+        sample.film_point = Vec2r((Real)tile.x + dx * (Real)tile.w,
+                                  (Real)tile.y + dy * (Real)tile.h);
 
         Ray ray;
         Real ray_w = m_camera->generate_ray(sample, &ray);
-        color = color + m_integrator->get_radiance(ray) * ray_w;
+        color = color + m_integrator->get_radiance(ray) * ray_w * rcp_spp;
     }
 
-    for (uint32 j = 0; j < subtile.h; ++j)
-    {
-        for (uint32 i = 0; i < subtile.w; ++i)
-        {
-            uint32 idx = (subtile.y + j) * tile.w + subtile.x + i;
-            buffer[idx] = color;
-        }
-    }
+    if (reset)
+        for (uint32 j = 0; j < tile.h; ++j)
+            for (uint32 i = 0; i < tile.w; ++i)
+                m_film->reset_pixel(tile.x + i, tile.y + j);
+
+    for (uint32 j = 0; j < tile.h; ++j)
+        for (uint32 i = 0; i < tile.w; ++i)
+            m_film->add_sample(tile.x + i, tile.y + j, color);
 }
 
 // Recursively renders the four subtiles of a tile
-void Renderer::render_subtile_divide(Vec3r* buffer, const Tile& tile, const Tile& subtile, uint32 res, uint32 spp)
+void Renderer::render_subtile_divide(const Tile& tile, const Tile& subtile, uint32 res, uint32 spp, bool reset)
 {
     if (subtile.w <= res && subtile.h <= res)
     {
-        render_subtile(buffer, tile, subtile, spp);
+        Tile tile_to_render = { tile.x + subtile.x, tile.y + subtile.y, subtile.w, subtile.h, 0 };
+        render_subtile(tile_to_render, spp, reset);
     }
     else
     {
@@ -357,33 +270,30 @@ void Renderer::render_subtile_divide(Vec3r* buffer, const Tile& tile, const Tile
         uint32 wr = subtile.w - wl;
         uint32 hb = subtile.h / 2;
         uint32 ht = subtile.h - hb;
-        Tile cbl = { subtile.x,      subtile.y,      wl, hb };
-        Tile cbr = { subtile.x + wl, subtile.y,      wr, hb };
-        Tile ctl = { subtile.x,      subtile.y + hb, wl, ht };
-        Tile ctr = { subtile.x + wl, subtile.y + hb, wr, ht };
-        if (cbl.w && cbl.h) render_subtile_divide(buffer, tile, cbl, res, spp);
-        if (cbr.w && cbr.h) render_subtile_divide(buffer, tile, cbr, res, spp);
-        if (ctl.w && ctl.h) render_subtile_divide(buffer, tile, ctl, res, spp);
-        if (ctr.w && ctr.h) render_subtile_divide(buffer, tile, ctr, res, spp);
+        Tile cbl = { subtile.x,      subtile.y,      wl, hb, 0 };
+        Tile cbr = { subtile.x + wl, subtile.y,      wr, hb, 0 };
+        Tile ctl = { subtile.x,      subtile.y + hb, wl, ht, 0 };
+        Tile ctr = { subtile.x + wl, subtile.y + hb, wr, ht, 0 };
+        if (cbl.w && cbl.h) render_subtile_divide(tile, cbl, res, spp, reset);
+        if (cbr.w && cbr.h) render_subtile_divide(tile, cbr, res, spp, reset);
+        if (ctl.w && ctl.h) render_subtile_divide(tile, ctl, res, spp, reset);
+        if (ctr.w && ctr.h) render_subtile_divide(tile, ctr, res, spp, reset);
     }
 }
 
 // Render a tile with the given number of samples per pixel
 // The method returns the actual number of spp used, which may be different in preview mode
-uint32 Renderer::render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& info, uint32 spp, bool& reset)
+void Renderer::render_tile(const Tile& tile, uint32 spp)
 {
     // Give a preview of the render by rendering using
     // a resolution a one sample per tile and increasing the resolution by 4 (2 for x and y)
     // at each call to render_tile.
-    if (m_options.preview && info.num_iters <= (uint32)max(log2(tile.w), log2(tile.h)))
+    if (m_options.preview && tile.n <= (uint32)max(log2(tile.w), log2(tile.h)))
     {
+        uint32 res = max(1u, max(tile.w, tile.h) / (1 << tile.n));
+        Tile subtile = { 0, 0, tile.w, tile.h, 0 };
         // we ask for a framebuffer reset after each iteration
-        reset = true;
-        spp = m_options.tile_preview_spp;
-
-        uint32 res = max(1u, max(tile.w, tile.h) / (1 << info.num_iters));
-        Tile subtile = { 0, 0, tile.w, tile.h };
-        render_subtile_divide(buffer, tile, subtile, res, spp);
+        render_subtile_divide(tile, subtile, res, m_options.tile_preview_spp, true);
     }
     // Once the final resolution is reached, we can render normally
     else
@@ -393,24 +303,25 @@ uint32 Renderer::render_tile(Vec3r* buffer, const Tile& tile, const TileInfo& in
         {
             for (uint32 i = 0; i < tile.w; ++i)
             {
-                Tile subtile = { i, j, 1, 1 };
-                render_subtile(buffer, tile, subtile, spp);
+                Tile tile_to_render = { tile.x, tile.y, 1, 1, 0 };
+                render_subtile(tile_to_render, spp, false);
             }
         }
     }
-    return spp;
 }
 
 // Copy the accumulation buffer to the screen an apply the neccessary postprocessing
-void Renderer::postprocess_buffer_and_display(
-        Vec3f* framebuffer, Vec3r* image, uint32 size_x, uint32 size_y)
+void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x, uint32 size_y)
 {
+    const Film::Pixel* pixels = m_film->get_pixels();
     float inv_gamma = 1.0f / 2.2f;
+
     for (uint32 i = 0; i < size_y; ++i)
     {
         for (uint32 j = 0; j < size_x; ++j)
         {
-            const Vec3r& col = image[i * size_x + j];
+            const Vec3r col = pixels[i * size_x + j].color;
+
             framebuffer[i * size_x + j] =
                 Vec3f(pow(float(col.x), inv_gamma),
                       pow(float(col.y), inv_gamma),

@@ -5,10 +5,10 @@
 
 namespace hop {
 
-class AmbientOcclusionIntegrator : public Integrator
+class PathIntegrator : public Integrator
 {
 public:
-    AmbientOcclusionIntegrator(std::shared_ptr<World> world);
+    PathIntegrator(std::shared_ptr<World> world);
     Vec3r get_radiance(const Ray& ray) override;
 };
 
