@@ -58,7 +58,9 @@ function init()
     world:preprocess()
 
     camera_desc = {
-        transform = make_lookat(Vec3.new(0, 10, 30), Vec3.new(0, 10, 0), Vec3.new(0, 1, 0)),
+        eye = Vec3.new(0, 10, 30),
+        target = Vec3.new(0, 10, 0),
+        up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
