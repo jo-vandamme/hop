@@ -32,10 +32,13 @@ namespace hop {
 Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
     , m_world(world), m_camera(camera), m_next_free_tile(0)
-    , m_ctrl_pressed(false), m_options(options)
+    , m_ctrl_pressed(false), m_options(options), m_integrator_mode(PATH), m_display_mode(COLOR)
+    , m_variance_exponent(0.5f)
+    , m_num_adaptive_samples(0), m_adaptive_exponent(1.0), m_adaptive_threshold(0.05)
 {
-    m_integrator = std::make_unique<PathIntegrator>(m_world);
     m_trackball = std::make_unique<TrackBall>(m_camera, this);
+
+    reset();
 
     m_window->set_key_handler([&](int key, int /*scancode*/, int action, int /*mods*/)
     {
@@ -53,28 +56,40 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
         }
         else if (action == GLFW_PRESS && key == GLFW_KEY_O)
         {
-            m_integrator = std::make_unique<AmbientOcclusionIntegrator>(m_world);
+            m_integrator_mode = OCCLUSION;
             reset();
         }
         else if (action == GLFW_PRESS && key == GLFW_KEY_N)
         {
-            m_integrator = std::make_unique<DebugIntegrator>(m_world, DebugIntegrator::NORMALS);
+            m_integrator_mode = NORMALS;
             reset();
         }
         else if (action == GLFW_PRESS && key == GLFW_KEY_P)
         {
-            m_integrator = std::make_unique<DebugIntegrator>(m_world, DebugIntegrator::POSITION);
+            m_integrator_mode = POSITION;
             reset();
         }
         else if (action == GLFW_PRESS && key == GLFW_KEY_U)
         {
-            m_integrator = std::make_unique<DebugIntegrator>(m_world, DebugIntegrator::UVS);
+            m_integrator_mode = UVS;
             reset();
         }
         else if (action == GLFW_PRESS && key == GLFW_KEY_T)
         {
-            m_integrator = std::make_unique<PathIntegrator>(m_world);
+            m_integrator_mode = PATH;
             reset();
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_I)
+        {
+            m_display_mode = SAMPLES;
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_V)
+        {
+            m_display_mode = VARIANCE;
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_C)
+        {
+            m_display_mode = COLOR;
         }
 
         if (m_lua)
@@ -108,6 +123,26 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
 void Renderer::reset()
 {
     std::unique_lock<std::mutex> tiles_lock(m_tiles_mutex);
+
+    switch (m_integrator_mode)
+    {
+        case OCCLUSION:
+            m_integrator = std::make_shared<AmbientOcclusionIntegrator>(m_world);
+            break;
+        case POSITION:
+            m_integrator = std::make_shared<DebugIntegrator>(m_world, DebugIntegrator::POSITION);
+            break;
+        case NORMALS:
+            m_integrator = std::make_shared<DebugIntegrator>(m_world, DebugIntegrator::NORMALS);
+            break;
+        case UVS:
+            m_integrator = std::make_shared<DebugIntegrator>(m_world, DebugIntegrator::UVS);
+            break;
+        case PATH:
+        default:
+            m_integrator = std::make_shared<PathIntegrator>(m_world);
+            break;
+    }
 
     m_next_free_tile = 0;
     for (uint32 i = 0; i < m_tiles.size(); ++i)
@@ -147,9 +182,10 @@ int Renderer::render(bool interactive)
                 m_tiles_mutex.lock();
                 uint32 tile_idx = m_next_free_tile++ % m_tiles.size();
                 Tile tile = m_tiles[tile_idx];
+                std::shared_ptr<Integrator> integrator = m_integrator;
                 m_tiles_mutex.unlock();
 
-                render_tile(tile, m_options.tile_spp);
+                render_tile(tile, m_options.tile_spp, integrator);
 
                 // Increase the sample count for this tile
                 m_tiles_mutex.lock();
@@ -221,28 +257,43 @@ int Renderer::render(bool interactive)
 }
 
 // Renders a tile, spp rays are shot from the tile to determine the tile's uniform color
-void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset)
+void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::shared_ptr<Integrator> integrator)
 {
     Vec3r color(0, 0, 0);
     Real rcp_spp = rcp((Real)spp);
     for (uint32 k = 0; k < spp; ++k)
     {
-        // Generate the samples according to a tent filter
-        Real r1 = 2 * random<Real>();
-        Real r2 = 2 * random<Real>();
-        Real dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
-        Real dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
-        dx = (dx + 1) * 0.5;
-        dy = (dy + 1) * 0.5;
-
+        Real dx = random<Real>();
+        Real dy = random<Real>();
         CameraSample sample;
-        sample.lens_point = Vec2r(random<Real>(), random<Real>());
-        sample.film_point = Vec2r((Real)tile.x + dx * (Real)tile.w,
-                                  (Real)tile.y + dy * (Real)tile.h);
+        sample.lens_point = Vec2r(random<Real>() * 1.0 - 0.5, random<Real>() * 1.0 - 0.5);
+        sample.film_point = Vec2r((Real)tile.x + 0.5 + dx * (Real)tile.w,
+                                  (Real)tile.y + 0.5 + dy * (Real)tile.h);
 
         Ray ray;
         Real ray_w = m_camera->generate_ray(sample, &ray);
-        color = color + m_integrator->get_radiance(ray) * ray_w * rcp_spp;
+        color += integrator->get_radiance(ray) * ray_w * rcp_spp;
+    }
+
+    if (m_num_adaptive_samples > 0 && tile.w == 1 && tile.h == 1)
+    {
+        Real v = max_component(m_film->get_standard_deviation(tile.x, tile.y));
+        v = max(0.0, min(1.0, v / m_adaptive_threshold));
+        v = pow(v, m_adaptive_exponent);
+        uint32 num_samples = v * m_num_adaptive_samples;
+        Real rcp_num_samples = rcp((Real)num_samples);
+
+        for (uint32 i = 0; i < num_samples; ++i)
+        {
+            Real dx = random<Real>();
+            Real dy = random<Real>();
+            CameraSample sample;
+            sample.lens_point = Vec2r(random<Real>() * 1.0 - 0.5, random<Real>() * 1.0 - 0.5);
+            sample.film_point = Vec2r((Real)tile.x + 0.5 + dx, (Real)tile.y + 0.5 + dy);
+            Ray ray;
+            Real ray_w = m_camera->generate_ray(sample, &ray);
+            color += integrator->get_radiance(ray) * ray_w * rcp_num_samples;
+        }
     }
 
     if (reset)
@@ -256,12 +307,12 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset)
 }
 
 // Recursively renders the four subtiles of a tile
-void Renderer::render_subtile_divide(const Tile& tile, const Tile& subtile, uint32 res, uint32 spp, bool reset)
+void Renderer::render_subtile_divide(const Tile& tile, const Tile& subtile, uint32 res, uint32 spp, bool reset, std::shared_ptr<Integrator> integrator)
 {
     if (subtile.w <= res && subtile.h <= res)
     {
         Tile tile_to_render = { tile.x + subtile.x, tile.y + subtile.y, subtile.w, subtile.h, 0 };
-        render_subtile(tile_to_render, spp, reset);
+        render_subtile(tile_to_render, spp, reset, integrator);
     }
     else
     {
@@ -273,16 +324,16 @@ void Renderer::render_subtile_divide(const Tile& tile, const Tile& subtile, uint
         Tile cbr = { subtile.x + wl, subtile.y,      wr, hb, 0 };
         Tile ctl = { subtile.x,      subtile.y + hb, wl, ht, 0 };
         Tile ctr = { subtile.x + wl, subtile.y + hb, wr, ht, 0 };
-        if (cbl.w && cbl.h) render_subtile_divide(tile, cbl, res, spp, reset);
-        if (cbr.w && cbr.h) render_subtile_divide(tile, cbr, res, spp, reset);
-        if (ctl.w && ctl.h) render_subtile_divide(tile, ctl, res, spp, reset);
-        if (ctr.w && ctr.h) render_subtile_divide(tile, ctr, res, spp, reset);
+        if (cbl.w && cbl.h) render_subtile_divide(tile, cbl, res, spp, reset, integrator);
+        if (cbr.w && cbr.h) render_subtile_divide(tile, cbr, res, spp, reset, integrator);
+        if (ctl.w && ctl.h) render_subtile_divide(tile, ctl, res, spp, reset, integrator);
+        if (ctr.w && ctr.h) render_subtile_divide(tile, ctr, res, spp, reset, integrator);
     }
 }
 
 // Render a tile with the given number of samples per pixel
 // The method returns the actual number of spp used, which may be different in preview mode
-void Renderer::render_tile(const Tile& tile, uint32 spp)
+void Renderer::render_tile(const Tile& tile, uint32 spp, std::shared_ptr<Integrator> integrator)
 {
     // Give a preview of the render by rendering using
     // a resolution a one sample per tile and increasing the resolution by 4 (2 for x and y)
@@ -292,7 +343,7 @@ void Renderer::render_tile(const Tile& tile, uint32 spp)
         uint32 res = max(1u, max(tile.w, tile.h) / (1 << tile.n));
         Tile subtile = { 0, 0, tile.w, tile.h, 0 };
         // we ask for a framebuffer reset after each iteration
-        render_subtile_divide(tile, subtile, res, m_options.tile_preview_spp, true);
+        render_subtile_divide(tile, subtile, res, m_options.tile_preview_spp, true, integrator);
     }
     // Once the final resolution is reached, we can render normally
     else
@@ -303,7 +354,7 @@ void Renderer::render_tile(const Tile& tile, uint32 spp)
             for (uint32 i = 0; i < tile.w; ++i)
             {
                 Tile tile_to_render = { tile.x + i, tile.y + j, 1, 1, 0 };
-                render_subtile(tile_to_render, spp, false);
+                render_subtile(tile_to_render, spp, false, integrator);
             }
         }
     }
@@ -313,18 +364,44 @@ void Renderer::render_tile(const Tile& tile, uint32 spp)
 void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x, uint32 size_y)
 {
     const Film::Pixel* pixels = m_film->get_pixels();
-    const float inv_gamma = 1.0f / 2.2f;
 
-    for (uint32 i = 0; i < size_y; ++i)
+    if (m_display_mode == COLOR)
     {
-        for (uint32 j = 0; j < size_x; ++j)
+        const float inv_gamma = 1.0f / 2.2f;
+        for (uint32 i = 0; i < size_y; ++i)
         {
-            const Vec3r col = pixels[i * size_x + j].color;
-
-            framebuffer[i * size_x + j] =
-                Vec3f(pow(float(col.x), inv_gamma),
-                      pow(float(col.y), inv_gamma),
-                      pow(float(col.z), inv_gamma));
+            for (uint32 j = 0; j < size_x; ++j)
+            {
+                const Vec3r col = pixels[i * size_x + j].color;
+                framebuffer[i * size_x + j] =
+                    Vec3f(pow(float(col.x / (col.x + 1.0)), inv_gamma),
+                          pow(float(col.y / (col.y + 1.0)), inv_gamma),
+                          pow(float(col.z / (col.z + 1.0)), inv_gamma));
+            }
+        }
+    }
+    else if (m_display_mode == VARIANCE)
+    {
+        for (uint32 i = 0; i < size_y; ++i)
+        {
+            for (uint32 j = 0; j < size_x; ++j)
+            {
+                const Vec3r var = pixels[i * size_x + j].variance;
+                framebuffer[i * size_x + j] = Vec3f(pow(float(var.x), m_variance_exponent),
+                                                    pow(float(var.y), m_variance_exponent),
+                                                    pow(float(var.z), m_variance_exponent));
+            }
+        }
+    }
+    else if (m_display_mode == SAMPLES)
+    {
+        for (uint32 i = 0; i < size_y; ++i)
+        {
+            for (uint32 j = 0; j < size_x; ++j)
+            {
+                float n = float(pixels[i * size_x + j].num_samples) / 100.0f;
+                framebuffer[i * size_x + j] = Vec3f(n, n, n);
+            }
         }
     }
 }

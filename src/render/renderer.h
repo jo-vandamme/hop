@@ -32,11 +32,27 @@ public:
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
 
 private:
-    void render_tile(const Tile& tile, uint32 spp);
-    void render_subtile(const Tile& tile, uint32 spp, bool reset);
-    void render_subtile_divide(const Tile& tile, const Tile& subtile, uint32 res, uint32 spp, bool reset);
+    void render_tile(const Tile& tile, uint32 spp, std::shared_ptr<Integrator> integrator);
+    void render_subtile(const Tile& tile, uint32 spp, bool reset, std::shared_ptr<Integrator> integrator);
+    void render_subtile_divide(const Tile& tile, const Tile& subtile, uint32 res, uint32 spp, bool reset, std::shared_ptr<Integrator> integrator);
 
     void postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x, uint32 size_y);
+
+    enum IntegratorMode
+    {
+        PATH,
+        OCCLUSION,
+        POSITION,
+        NORMALS,
+        UVS
+    };
+
+    enum DisplayMode
+    {
+        COLOR,
+        VARIANCE,
+        SAMPLES
+    };
 
 private:
     std::unique_ptr<GLWindow> m_window;
@@ -46,11 +62,18 @@ private:
     std::mutex m_tiles_mutex;
     std::unique_ptr<Film> m_film;
     std::vector<Tile> m_tiles;
-    std::unique_ptr<Integrator> m_integrator;
+    std::shared_ptr<Integrator> m_integrator;
     uint32 m_next_free_tile;
     bool m_ctrl_pressed;
     Options m_options;
     lua::Environment* m_lua;
+    IntegratorMode m_integrator_mode;
+    DisplayMode m_display_mode;
+    float m_variance_exponent;
+
+    uint32 m_num_adaptive_samples;
+    Real m_adaptive_exponent;
+    Real m_adaptive_threshold;
 };
 
 } // namespace hop

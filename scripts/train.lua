@@ -1,11 +1,11 @@
 
 options = {
-    frame_width = 1000,
-    frame_height = 800,
-    tile_width = 64,
-    tile_height = 64,
+    frame_width = 800,
+    frame_height = 600,
+    tile_width = 8,
+    tile_height = 8,
     spp = 10,
-    preview_spp = 10,
+    preview_spp = 1,
     preview = true
 }
 

@@ -40,6 +40,14 @@ public:
         }
         return *this;
     }
+
+    Vec3<T>& operator+=(const Vec3<T>& v)
+    {
+        x += v.x;
+        y += v.y;
+        z += v.z;
+        return *this;
+    }
 };
 
 typedef Vec3<double> Vec3d;
@@ -124,6 +132,12 @@ inline Vec3<T> rcp(const Vec3<T>& v)
 }
 
 template <typename T>
+inline Vec3<T> sqr(const Vec3<T>& a)
+{
+    return Vec3<T>(sqr(a.x), sqr(a.y), sqr(a.z));
+}
+
+template <typename T>
 inline Vec3<T> sqrt(const Vec3<T>& a)
 {
     return Vec3<T>(sqrt(a.x), sqrt(a.y), sqrt(a.z));
@@ -182,6 +196,15 @@ template <typename T>
 inline T min(const Vec3<T>& v)
 {
     return min(min(v.x, v.y), v.z);
+}
+
+template <typename T>
+inline T max_component(const Vec3<T>& v)
+{
+    T out = v.x;
+    if (v.y > v.x) out = v.y;
+    if (v.z > v.y) out = v.z;
+    return out;
 }
 
 template <typename T>

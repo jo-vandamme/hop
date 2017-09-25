@@ -13,6 +13,7 @@ public:
     struct Pixel
     {
         Vec3r color;
+        Vec3r variance;
         Real num_samples;
     };
 
@@ -20,8 +21,10 @@ public:
 
     void add_sample(uint32 x, uint32 y, const Vec3r& color);
     void reset_pixel(uint32 x, uint32 y);
+    Vec3r get_variance(uint32 x, uint32 y);
+    Vec3r get_standard_deviation(uint32 x, uint32 y);
 
-    Pixel* get_pixels() { return &m_image[0]; }
+    Pixel* get_pixels() { return m_image.get(); }
 
 private:
     uint32 m_width;

@@ -20,7 +20,7 @@ Vec3r AmbientOcclusionIntegrator::get_radiance(const Ray& ray)
     SurfaceInteraction isect;
     HitInfo hit;
     if (!m_world->intersect(ray, &hit))
-        return Vec3r(0, 0, 0);
+        return AO_BACKGROUND;
 
     m_world->get_surface_interaction(hit, &isect);
     Vec3r n = normalize(isect.normal);

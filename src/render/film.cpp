@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <cstring>
+#include <utility>
 
 namespace hop {
 
@@ -18,7 +19,13 @@ void Film::add_sample(uint32 x, uint32 y, const Vec3r& color)
 {
     uint32 idx = y * m_width + x;
     Real n = ++m_image[idx].num_samples;
-    m_image[idx].color = (m_image[idx].color * (n - 1.0) + color) * rcp(n);
+    Real rcp_n = rcp(n);
+
+    if (n > 2)
+        m_image[idx].variance = m_image[idx].variance * ((n - 2.0) * rcp(n - 1.0)) +
+                                (sqr(color - m_image[idx].color) * rcp_n);
+
+    m_image[idx].color += (color - m_image[idx].color) * rcp_n;
 }
 
 void Film::reset_pixel(uint32 x, uint32 y)
@@ -26,6 +33,17 @@ void Film::reset_pixel(uint32 x, uint32 y)
     uint32 idx = y * m_width + x;
     m_image[idx].num_samples = 0.0;
     m_image[idx].color = Vec3r(0, 0, 0);
+    m_image[idx].variance = Vec3r(0, 0, 0);
+}
+
+Vec3r Film::get_variance(uint32 x, uint32 y)
+{
+    return m_image[y * m_width + x].variance;
+}
+
+Vec3r Film::get_standard_deviation(uint32 x, uint32 y)
+{
+    return sqrt(m_image[y * m_width + x].variance);
 }
 
 } // namespace hop
