@@ -9,6 +9,7 @@
 #include "render/gl_window.h"
 #include "render/film.h"
 #include "render/tile.h"
+#include "render/tonemap.h"
 #include "math/vec3.h"
 #include "lua/environment.h"
 #include "util/log.h"
@@ -69,11 +70,12 @@ private:
     lua::Environment* m_lua;
     IntegratorMode m_integrator_mode;
     DisplayMode m_display_mode;
-    float m_variance_exponent;
-
     uint32 m_num_adaptive_samples;
+    uint32 m_num_firefly_samples;
     Real m_adaptive_exponent;
     Real m_adaptive_threshold;
+    Real m_firefly_threshold;
+    ToneMapType m_tonemap;
 };
 
 } // namespace hop

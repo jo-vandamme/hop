@@ -18,7 +18,7 @@
 
 #define TILES_SPIRAL
 
-#define AO_BACKGROUND Vec3r(0, 0.1, 0)
+#define AO_BACKGROUND Vec3r(0.0, 0.0, 0.0)
 
 #define likely(x) __builtin_expect(!!(x),1)
 #define unlikely(x) __builtin_expect(!!(x),0)

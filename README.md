@@ -49,6 +49,12 @@ function init()
         tile_width = 64,
         tile_height = 64,
         spp = 1,
+        adaptive_spp = 0,
+        firefly_spp = 0,
+        adaptive_threshold = 0.1,
+        adaptive_exponent = 1,
+        firefly_threshold = 0.1,
+        tonemap = "filmic",
         preview_spp = 1,
         preview = true
     }
@@ -68,7 +74,7 @@ function init()
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
-        lens_radius = 0.0,
+        lens_radius = 0.5,
         focal_distance = 40
     }
     camera = Camera.make_perspective(camera_desc)
@@ -96,18 +102,7 @@ end
 
 ## Sample Images
 
-Most models shown here were downloaded on Free3D.
-
-Image of a tree (3.5M triangles), rendered with ambient occlusion.
-![Tree AO](doc/images/tree_ao.png?raw=true "Tree AO")
-
-The same tree, instanced 50 times (170M triangles) and rendered with depth of field and ambient occlusion.
-![Forest AO](doc/images/forest_ao.png?raw=true "Forest AO")
-
-![Train AO](doc/images/train_ao.png?raw=true "Train AO")
-
-![Splash AO](doc/images/splash_ao.png?raw=true "Splash AO")
-
-The black teeth are due to the surface normals being inverted.
-![Skull AO](doc/images/skull_ao.png?raw=true "Skull AO")
+Image of a splash showing depth of field, refraction and reflections.
+![Splash](doc/images/splash_tonemap_filmic.png?raw=true "Splash")
+This model was downloaded on Free3D.
 

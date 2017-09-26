@@ -2,9 +2,15 @@
 options = {
     frame_width = 800,
     frame_height = 600,
-    tile_width = 8,
-    tile_height = 8,
+    tile_width = 16,
+    tile_height = 16,
     spp = 10,
+    adaptive_spp = 0,
+    firefly_spp = 0,
+    adaptive_threshold = 0.1,
+    adaptive_exponent = 1,
+    firefly_threshold = 0.1,
+    tonemap = "filmic",
     preview_spp = 1,
     preview = true
 }

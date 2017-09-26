@@ -3,5 +3,6 @@ build/
 build_clang/
 archive/
 models/
+doc/images_local/
 *.o
 

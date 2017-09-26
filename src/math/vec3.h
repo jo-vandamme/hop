@@ -41,6 +41,22 @@ public:
         return *this;
     }
 
+    Vec3<T>& operator*=(const Vec3<T>& v)
+    {
+        x *= v.x;
+        y *= v.y;
+        z *= v.z;
+        return *this;
+    }
+
+    Vec3<T>& operator*=(const T v)
+    {
+        x *= v;
+        y *= v;
+        z *= v;
+        return *this;
+    }
+
     Vec3<T>& operator+=(const Vec3<T>& v)
     {
         x += v.x;
@@ -68,9 +84,21 @@ inline Vec3<T> operator-(const Vec3<T>& a, const Vec3<T>& b)
 }
 
 template <typename T>
+inline Vec3<T> operator-(const Vec3<T>& a, const T b)
+{
+    return Vec3<T>(a.x - b, a.y - b, a.z - b);
+}
+
+template <typename T>
 inline Vec3<T> operator+(const Vec3<T>& a, const Vec3<T>& b)
 {
     return Vec3<T>(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+template <typename T>
+inline Vec3<T> operator+(const Vec3<T>& a, const T b)
+{
+    return Vec3<T>(a.x + b, a.y + b, a.z + b);
 }
 
 template <typename T>
@@ -205,6 +233,24 @@ inline T max_component(const Vec3<T>& v)
     if (v.y > v.x) out = v.y;
     if (v.z > v.y) out = v.z;
     return out;
+}
+
+template <typename T>
+inline Vec3<T> reflect(const Vec3<T>& dir, const Vec3<T>& normal)
+{
+    return T(2) * dot(normal, dir) * normal - dir;
+}
+
+template <typename T>
+inline Vec3<T> refract(const Vec3<T>& dir, const Vec3<T>& normal, const T n1_over_n2)
+{
+    T n_dot_dir = dot(normal, dir);
+    T det = T(1) - sqr(n1_over_n2) * (T(1) - sqr(n_dot_dir));
+
+    if (det < 0)
+        return reflect(dir, normal);
+
+    return -n1_over_n2 * dir + normal * (n1_over_n2 * n_dot_dir - sqrt(det));
 }
 
 template <typename T>

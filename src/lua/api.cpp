@@ -13,6 +13,7 @@
 #include "geometry/shape_manager.h"
 #include "camera/perspective_camera.h"
 #include "render/renderer.h"
+#include "render/tonemap.h"
 #include "options.h"
 
 #include <sstream>
@@ -367,22 +368,40 @@ static int renderer_ctor(lua_State* L)
     lua_getfield(L, 3, "spp");
     lua_getfield(L, 3, "preview_spp");
     lua_getfield(L, 3, "preview");
+    lua_getfield(L, 3, "adaptive_spp");
+    lua_getfield(L, 3, "adaptive_threshold");
+    lua_getfield(L, 3, "adaptive_exponent");
+    lua_getfield(L, 3, "firefly_spp");
+    lua_getfield(L, 3, "firefly_threshold");
+    lua_getfield(L, 3, "tonemap");
 
-    bool preview = s.get_bool(-1);
-    int prev_spp = s.get_int(-2);
-    int spp = s.get_int(-3);
-    int th = s.get_int(-4);
-    int tw = s.get_int(-5);
-    int fh = s.get_int(-6);
-    int fw = s.get_int(-7);
-    s.pop(7);
+    const char* tonemap_str = s.get_string(-1);
+    double firefly_threshold = s.get_double(-2);
+    int firefly_spp = s.get_int(-3);
+    double adaptive_exponent = s.get_double(-4);
+    double adaptive_threshold = s.get_double(-5);
+    int adaptive_spp = s.get_int(-6);
+    bool preview = s.get_bool(-7);
+    int prev_spp = s.get_int(-8);
+    int spp = s.get_int(-9);
+    int th = s.get_int(-10);
+    int tw = s.get_int(-11);
+    int fh = s.get_int(-12);
+    int fw = s.get_int(-13);
+    s.pop(13);
 
     Options opts;
     opts.frame_size = Vec2u(fw, fh);
     opts.tile_size = Vec2u(tw, th);
-    opts.tile_spp = spp;
-    opts.tile_preview_spp = prev_spp;
+    opts.spp = spp;
+    opts.preview_spp = prev_spp;
     opts.preview = preview;
+    opts.adaptive_spp = adaptive_spp;
+    opts.adaptive_threshold = adaptive_threshold;
+    opts.adaptive_exponent = adaptive_exponent;
+    opts.firefly_spp = firefly_spp;
+    opts.firefly_threshold = firefly_threshold;
+    opts.tonemap = tonemap_from_string(tonemap_str);
 
     std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(world, cam, opts);
     renderer->set_lua_environment(g_environment);

@@ -1,10 +1,16 @@
 
 options = {
-    frame_width = 800,
-    frame_height = 800,
+    frame_width = 700,
+    frame_height = 900,
     tile_width = 16,
     tile_height = 16,
-    spp = 1,
+    spp = 10,
+    adaptive_spp = 0,
+    firefly_spp = 0,
+    adaptive_threshold = 0.1,
+    adaptive_exponent = 1,
+    firefly_threshold = 0.1,
+    tonemap = "filmic",
     preview_spp = 1,
     preview = true
 }
@@ -13,36 +19,17 @@ renderer = nil
 
 function init()
 
-    print("Skull scene")
-
-    shape = load_obj("/home/jo/dev/tracing/hop/models/skull.obj")
+    shape = load_obj("/home/jo/dev/tracing/scenes/buddha.obj")
 
     world = World.new()
+    world:add_shape(shape)
 
-    d = 30
-    step = 4
-
-    for x = -d,d,step do
-        for y = -d,d,step do
-            for z = -d,d,step do
-                xfm = make_translation(x + math.random(-1, 1), y + math.random(-1, 1), z + math.random(-1, 1)) *
-                      make_rotation(
-                          Vec3.new(math.random(), math.random(), math.random()),
-                          math.random(-90, 90))
-                inst = make_instance(shape, xfm)
-                world:add_shape(inst)
-            end
-        end
-    end
-
-    world:preprocess()
-
-    bbox = world:get_bbox()
+    bbox = shape:get_bbox()
     centroid = bbox:get_centroid()
 
     target = centroid
     d = (bbox:max() - bbox:min()):length()
-    eye = target + Vec3.new(d * 0.0, d * 0.0, d * 0.5)
+    eye = target - Vec3.new(0, 0, d * 1.0)
 
     world:preprocess()
 
@@ -54,7 +41,7 @@ function init()
         frame_height = options.frame_height,
         fov = 90,
         lens_radius = 0.0,
-        focal_distance = d * 0.25
+        focal_distance = (eye - target):length()
     }
     camera = Camera.make_perspective(camera_desc)
 

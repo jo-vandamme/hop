@@ -21,7 +21,7 @@ void Film::add_sample(uint32 x, uint32 y, const Vec3r& color)
     Real n = ++m_image[idx].num_samples;
     Real rcp_n = rcp(n);
 
-    if (n > 2)
+    if (n > 1)
         m_image[idx].variance = m_image[idx].variance * ((n - 2.0) * rcp(n - 1.0)) +
                                 (sqr(color - m_image[idx].color) * rcp_n);
 

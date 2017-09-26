@@ -4,6 +4,7 @@
 #include "render/drawing.h"
 #include "render/film.h"
 #include "render/tile.h"
+#include "render/tonemap.h"
 #include "geometry/world.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
@@ -33,8 +34,10 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
     , m_world(world), m_camera(camera), m_next_free_tile(0)
     , m_ctrl_pressed(false), m_options(options), m_integrator_mode(PATH), m_display_mode(COLOR)
-    , m_variance_exponent(0.5f)
-    , m_num_adaptive_samples(0), m_adaptive_exponent(1.0), m_adaptive_threshold(0.05)
+    , m_num_adaptive_samples(options.adaptive_spp), m_num_firefly_samples(options.firefly_spp)
+    , m_adaptive_exponent(options.adaptive_exponent)
+    , m_adaptive_threshold(options.adaptive_threshold), m_firefly_threshold(options.firefly_threshold)
+    , m_tonemap(options.tonemap)
 {
     m_trackball = std::make_unique<TrackBall>(m_camera, this);
 
@@ -90,6 +93,22 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
         else if (action == GLFW_PRESS && key == GLFW_KEY_C)
         {
             m_display_mode = COLOR;
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_G)
+        {
+            m_tonemap = ToneMapType::GAMMA;
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_R)
+        {
+            m_tonemap = ToneMapType::REINHARD;
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_F)
+        {
+            m_tonemap = ToneMapType::FILMIC;
+        }
+        else if (action == GLFW_PRESS && key == GLFW_KEY_L)
+        {
+            m_tonemap = ToneMapType::LINEAR;
         }
 
         if (m_lua)
@@ -185,7 +204,7 @@ int Renderer::render(bool interactive)
                 std::shared_ptr<Integrator> integrator = m_integrator;
                 m_tiles_mutex.unlock();
 
-                render_tile(tile, m_options.tile_spp, integrator);
+                render_tile(tile, m_options.spp, integrator);
 
                 // Increase the sample count for this tile
                 m_tiles_mutex.lock();
@@ -232,6 +251,7 @@ int Renderer::render(bool interactive)
             Vec3f* framebuffer = (Vec3f*)m_window->map_framebuffer();
             postprocess_buffer_and_display(framebuffer, m_options.frame_size.x, m_options.frame_size.y);
 
+            /*
             draw::Buffer<Vec3f> buf;
             buf.buffer = framebuffer;
             buf.pitch = m_options.frame_size.x;
@@ -242,6 +262,7 @@ int Renderer::render(bool interactive)
 
             draw::bar(buf, Vec2u(0, 0), Vec2u(200, 30), Vec3f(0, 0, 0));
             draw::print(buf, oss.str().c_str(), Vec2u(10, 10), Vec3f(1, 1, 1));
+            */
 
             m_window->unmap_framebuffer();
 
@@ -259,51 +280,54 @@ int Renderer::render(bool interactive)
 // Renders a tile, spp rays are shot from the tile to determine the tile's uniform color
 void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::shared_ptr<Integrator> integrator)
 {
-    Vec3r color(0, 0, 0);
-    Real rcp_spp = rcp((Real)spp);
-    for (uint32 k = 0; k < spp; ++k)
-    {
-        Real dx = random<Real>();
-        Real dy = random<Real>();
-        CameraSample sample;
-        sample.lens_point = Vec2r(random<Real>() * 1.0 - 0.5, random<Real>() * 1.0 - 0.5);
-        sample.film_point = Vec2r((Real)tile.x + 0.5 + dx * (Real)tile.w,
-                                  (Real)tile.y + 0.5 + dy * (Real)tile.h);
-
-        Ray ray;
-        Real ray_w = m_camera->generate_ray(sample, &ray);
-        color += integrator->get_radiance(ray) * ray_w * rcp_spp;
-    }
-
-    if (m_num_adaptive_samples > 0 && tile.w == 1 && tile.h == 1)
-    {
-        Real v = max_component(m_film->get_standard_deviation(tile.x, tile.y));
-        v = max(0.0, min(1.0, v / m_adaptive_threshold));
-        v = pow(v, m_adaptive_exponent);
-        uint32 num_samples = v * m_num_adaptive_samples;
-        Real rcp_num_samples = rcp((Real)num_samples);
-
-        for (uint32 i = 0; i < num_samples; ++i)
-        {
-            Real dx = random<Real>();
-            Real dy = random<Real>();
-            CameraSample sample;
-            sample.lens_point = Vec2r(random<Real>() * 1.0 - 0.5, random<Real>() * 1.0 - 0.5);
-            sample.film_point = Vec2r((Real)tile.x + 0.5 + dx, (Real)tile.y + 0.5 + dy);
-            Ray ray;
-            Real ray_w = m_camera->generate_ray(sample, &ray);
-            color += integrator->get_radiance(ray) * ray_w * rcp_num_samples;
-        }
-    }
-
     if (reset)
         for (uint32 j = 0; j < tile.h; ++j)
             for (uint32 i = 0; i < tile.w; ++i)
                 m_film->reset_pixel(tile.x + i, tile.y + j);
 
-    for (uint32 j = 0; j < tile.h; ++j)
-        for (uint32 i = 0; i < tile.w; ++i)
-            m_film->add_sample(tile.x + i, tile.y + j, color);
+    auto render = [&](uint32 spp)
+    {
+        Vec3r color(0, 0, 0);
+        Real rcp_spp = rcp((Real)spp);
+
+        for (uint32 k = 0; k < spp; ++k)
+        {
+            Real dx = random<Real>();
+            Real dy = random<Real>();
+            CameraSample sample;
+            sample.lens_point = Vec2r(random<Real>() * 1.0 - 0.5, random<Real>() * 1.0 - 0.5);
+            sample.film_point = Vec2r((Real)tile.x + 0.5 + dx * (Real)tile.w,
+                                  (Real)tile.y + 0.5 + dy * (Real)tile.h);
+            Ray ray;
+            Real ray_w = m_camera->generate_ray(sample, &ray);
+            color += integrator->get_radiance(ray) * ray_w * rcp_spp;
+        }
+
+        for (uint32 j = 0; j < tile.h; ++j)
+            for (uint32 i = 0; i < tile.w; ++i)
+                m_film->add_sample(tile.x + i, tile.y + j, color);
+    };
+
+    // Render with spp samples per pixel
+    render(spp);
+
+    // Render with an adaptive number of samples per pixel proportional to the standard deviation
+    if (m_num_adaptive_samples > 0 && tile.n != 0 && tile.w == 1 && tile.h == 1)
+    {
+        Vec3r stddev = m_film->get_standard_deviation(tile.x, tile.y);
+        Real v = pow(clamp(max_component(stddev) / m_adaptive_threshold, 0.0, 1.0), m_adaptive_exponent);
+        uint32 num_adaptive_samples = (uint32)(v * (Real)m_num_adaptive_samples);
+        if (num_adaptive_samples > 0)
+            render(num_adaptive_samples);
+    }
+
+    // Render num_firefly_samples if the standard deviation is > than the threshold
+    if (m_num_firefly_samples > 0 && tile.n != 0 && tile.w == 1 && tile.h == 1)
+    {
+        Vec3r stddev = m_film->get_standard_deviation(tile.x, tile.y);
+        if (max_component(stddev) > m_firefly_threshold)
+            render(m_num_firefly_samples);
+    }
 }
 
 // Recursively renders the four subtiles of a tile
@@ -343,7 +367,7 @@ void Renderer::render_tile(const Tile& tile, uint32 spp, std::shared_ptr<Integra
         uint32 res = max(1u, max(tile.w, tile.h) / (1 << tile.n));
         Tile subtile = { 0, 0, tile.w, tile.h, 0 };
         // we ask for a framebuffer reset after each iteration
-        render_subtile_divide(tile, subtile, res, m_options.tile_preview_spp, true, integrator);
+        render_subtile_divide(tile, subtile, res, m_options.preview_spp, true, integrator);
     }
     // Once the final resolution is reached, we can render normally
     else
@@ -353,7 +377,7 @@ void Renderer::render_tile(const Tile& tile, uint32 spp, std::shared_ptr<Integra
         {
             for (uint32 i = 0; i < tile.w; ++i)
             {
-                Tile tile_to_render = { tile.x + i, tile.y + j, 1, 1, 0 };
+                Tile tile_to_render = { tile.x + i, tile.y + j, 1, 1, tile.n };
                 render_subtile(tile_to_render, spp, false, integrator);
             }
         }
@@ -367,16 +391,12 @@ void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x,
 
     if (m_display_mode == COLOR)
     {
-        const float inv_gamma = 1.0f / 2.2f;
         for (uint32 i = 0; i < size_y; ++i)
         {
             for (uint32 j = 0; j < size_x; ++j)
             {
                 const Vec3r col = pixels[i * size_x + j].color;
-                framebuffer[i * size_x + j] =
-                    Vec3f(pow(float(col.x / (col.x + 1.0)), inv_gamma),
-                          pow(float(col.y / (col.y + 1.0)), inv_gamma),
-                          pow(float(col.z / (col.z + 1.0)), inv_gamma));
+                framebuffer[i * size_x + j] = tonemap(m_tonemap, col);
             }
         }
     }
@@ -386,10 +406,8 @@ void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x,
         {
             for (uint32 j = 0; j < size_x; ++j)
             {
-                const Vec3r var = pixels[i * size_x + j].variance;
-                framebuffer[i * size_x + j] = Vec3f(pow(float(var.x), m_variance_exponent),
-                                                    pow(float(var.y), m_variance_exponent),
-                                                    pow(float(var.z), m_variance_exponent));
+                const Vec3r dev = sqrt(pixels[i * size_x + j].variance);
+                framebuffer[i * size_x + j] = Vec3f(dev.x, dev.y, dev.z);
             }
         }
     }
