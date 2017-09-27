@@ -8,9 +8,6 @@
 #include "geometry/hit_info.h"
 #include "geometry/surface_interaction.h"
 #include "accel/bvh_node.h"
-#ifdef TRIS_SIMD_ISECT
-    #include "accel/bvh_intersector_two_levels.h"
-#endif
 #include "math/bbox.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
@@ -55,9 +52,6 @@ private:
     std::vector<Vec3r> m_vertices;
     std::vector<Vec3r> m_normals;
     std::vector<Vec2r> m_uvs;
-#ifdef TRIS_SIMD_ISECT
-    std::vector<bvh::PackedTriangles> m_triangles;
-#endif
     std::vector<uint32> m_materials;
     bool m_dirty;
     BBoxr m_bbox;

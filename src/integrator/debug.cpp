@@ -1,4 +1,4 @@
-#include "integrator/debug_integrator.h"
+#include "integrator/debug.h"
 #include "geometry/world.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
@@ -11,7 +11,7 @@ DebugIntegrator::DebugIntegrator(std::shared_ptr<World> world, Type type)
 {
 }
 
-Spectrum DebugIntegrator::get_radiance(const Ray& ray)
+Spectrum DebugIntegrator::Li(const Ray& ray) const
 {
     HitInfo hit;
     SurfaceInteraction isect;

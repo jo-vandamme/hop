@@ -56,11 +56,6 @@ void World::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info
 {
     Real b0 = 1 - hit.b1 - hit.b2;
 
-#ifdef TRIS_SIMD_ISECT
-    info->normal = Vec3r(b0, hit.b1, hit.b2);
-    return;
-#endif
-
     info->position = b0     * m_vertices[hit.primitive_id * 3 + 0] +
                      hit.b1 * m_vertices[hit.primitive_id * 3 + 1] +
                      hit.b2 * m_vertices[hit.primitive_id * 3 + 2];
@@ -170,9 +165,6 @@ void World::partition_meshes()
 
     uint32 vertex_offset = 0;
     uint32 triangle_offset = 0;
-#ifdef TRIS_SIMD_ISECT
-    uint32 packed_triangle_offset = 0;
-#endif
 
     for (const auto& kv : mesh_to_instance_map)
     {
@@ -186,11 +178,7 @@ void World::partition_meshes()
 
         auto tri_leaf_cb = [&](bvh::Node* leaf, const std::vector<Triangle>& triangles)
         {
-#ifdef TRIS_SIMD_ISECT
-            leaf->set_primitives(packed_triangle_offset, triangles.size());
-#else
             leaf->set_primitives(triangle_offset, triangles.size());
-#endif
             ++num_bvh2_leaves;
 
             // Copy triangles to flat array
@@ -213,61 +201,6 @@ void World::partition_meshes()
                 vertex_offset += 3;
                 ++triangle_offset;
             }
-
-#ifdef TRIS_SIMD_ISECT
-            for (size_t i = 0; i < triangles.size();)
-            {
-                uint32 i0 = (i + 0);
-                uint32 i1 = (i + 1) >= triangles.size() ? i : i + 1;
-                uint32 i2 = (i + 2) >= triangles.size() ? i : i + 2;
-                uint32 i3 = (i + 3) >= triangles.size() ? i : i + 3;
-
-                __m256d mask = _mm256_set_pd(0, 0, 0, 0);
-                if      (i + 1 >= triangles.size())
-                    mask = _mm256_set_pd(0, 1, 1, 1);
-                else if (i + 2 >= triangles.size())
-                    mask = _mm256_set_pd(0, 0, 1, 1);
-                else if (i + 3 >= triangles.size())
-                    mask = _mm256_set_pd(0, 0, 0, 1);
-
-                i += 4;
-
-                const Triangle& t0 = triangles[i0];
-                const Triangle& t1 = triangles[i1];
-                const Triangle& t2 = triangles[i2];
-                const Triangle& t3 = triangles[i3];
-
-                const Vec3r t0e1 = t0.vertices[1] - t0.vertices[0];
-                const Vec3r t1e1 = t1.vertices[1] - t1.vertices[0];
-                const Vec3r t2e1 = t2.vertices[1] - t2.vertices[0];
-                const Vec3r t3e1 = t3.vertices[1] - t3.vertices[0];
-
-                const Vec3r t0e2 = t0.vertices[2] - t0.vertices[0];
-                const Vec3r t1e2 = t1.vertices[2] - t1.vertices[0];
-                const Vec3r t2e2 = t2.vertices[2] - t2.vertices[0];
-                const Vec3r t3e2 = t3.vertices[2] - t3.vertices[0];
-
-                const Vec3r t0v0 = t0.vertices[0];
-                const Vec3r t1v0 = t1.vertices[0];
-                const Vec3r t2v0 = t2.vertices[0];
-                const Vec3r t3v0 = t3.vertices[0];
-
-                bvh::PackedTriangles ALIGN(32) packed_tris;
-                packed_tris.e1[0] = _mm256_set_pd(t0e1.x, t1e1.x, t2e1.x, t3e1.x);
-                packed_tris.e1[1] = _mm256_set_pd(t0e1.y, t1e1.y, t2e1.y, t3e1.y);
-                packed_tris.e1[2] = _mm256_set_pd(t0e1.z, t1e1.z, t2e1.z, t3e1.z);
-                packed_tris.e2[0] = _mm256_set_pd(t0e2.x, t1e2.x, t2e2.x, t3e2.x);
-                packed_tris.e2[1] = _mm256_set_pd(t0e2.y, t1e2.y, t2e2.y, t3e2.y);
-                packed_tris.e2[2] = _mm256_set_pd(t0e2.z, t1e2.z, t2e2.z, t3e2.z);
-                packed_tris.v0[0] = _mm256_set_pd(t0v0.x, t1v0.x, t2v0.x, t3v0.x);
-                packed_tris.v0[1] = _mm256_set_pd(t0v0.y, t1v0.y, t2v0.y, t3v0.y);
-                packed_tris.v0[2] = _mm256_set_pd(t0v0.z, t1v0.z, t2v0.z, t3v0.z);
-                packed_tris.inactive_mask = mask;
-
-                m_triangles.push_back(packed_tris);
-                ++packed_triangle_offset;
-            }
-#endif
         };
 
         auto bvh_nodes = bvh::Builder<Triangle, TriAccessor,
@@ -292,53 +225,17 @@ void World::partition_meshes()
 class Visitor
 {
 public:
-#ifdef TRIS_SIMD_ISECT
-    Visitor(const Vec3r* vertices, const bvh::PackedTriangles* triangles) : m_vertices(vertices), m_triangles(triangles) { }
-#else
     Visitor(const Vec3r* vertices) : m_vertices(vertices) { }
-#endif
 
-#ifdef TRIS_SIMD_ISECT
-    bool intersect(const bvh::Node& node, const bvh::PackedRay& ray, HitInfo* hit) const;
-    bool intersect_any(const bvh::Node& node, const bvh::PackedRay& ray, HitInfo* hit) const;
-    const bvh::PackedTriangles* m_triangles;
-#else
     bool intersect(const bvh::Node& node, const Ray& ray, HitInfo* hit) const;
     bool intersect_any(const bvh::Node& node, const Ray& ray, HitInfo* hit) const;
-#endif
 
     const Vec3r* m_vertices;
 };
 
-#ifdef TRIS_SIMD_ISECT
-inline bool Visitor::intersect(const bvh::Node& node, const bvh::PackedRay& pray, HitInfo* hit) const
-#else
 inline bool Visitor::intersect(const bvh::Node& node, const Ray& ray, HitInfo* hit) const
-#endif
 {
     bool got_hit = false;
-
-#ifdef TRIS_SIMD_ISECT
-    int32 num_primitives = int32(node.get_num_primitives());
-    uint32 packed_tri_idx = node.get_primitives_offset();
-
-    while (num_primitives > 0)
-    {
-        num_primitives -= 4;
-        bvh::PackedHitInfo phit;
-        if (intersect_triangles_simd(pray, m_triangles[packed_tri_idx], phit))
-        {
-            got_hit = true;
-            hit->b1 = phit.b1;
-            hit->b2 = phit.b2;
-            hit->t = phit.t;
-            hit->primitive_id = packed_tri_idx + phit.idx;
-        }
-        ++packed_tri_idx;
-    }
-    return got_hit;
-
-#else
     uint32 num_primitives = node.get_num_primitives();
     uint32 tri_idx = node.get_primitives_offset();
 
@@ -357,34 +254,10 @@ inline bool Visitor::intersect(const bvh::Node& node, const Ray& ray, HitInfo* h
         }
     }
     return got_hit;
-#endif
 }
 
-#ifdef TRIS_SIMD_ISECT
-inline bool Visitor::intersect_any(const bvh::Node& node, const bvh::PackedRay& pray, HitInfo* hit) const
-#else
 inline bool Visitor::intersect_any(const bvh::Node& node, const Ray& ray, HitInfo* hit) const
-#endif
 {
-#ifdef TRIS_SIMD_ISECT
-    int32 num_primitives = int32(node.get_num_primitives());
-    uint32 packed_tri_idx = node.get_primitives_offset();
-
-    while (num_primitives > 0)
-    {
-        num_primitives -= 4;
-        bvh::PackedHitInfo phit;
-        if (intersect_triangles_simd(pray, m_triangles[packed_tri_idx], phit))
-        {
-            hit->t = phit.t;
-            hit->primitive_id = packed_tri_idx + phit.idx;
-            return true;
-        }
-        ++packed_tri_idx;
-    }
-    return false;
-
-#else
     uint32 num_primitives = node.get_num_primitives();
     uint32 tri_idx = node.get_primitives_offset();
 
@@ -403,26 +276,17 @@ inline bool Visitor::intersect_any(const bvh::Node& node, const Ray& ray, HitInf
         }
     }
     return false;
-#endif
 }
 
 bool World::intersect(const Ray& r, HitInfo* hit) const
 {
-#ifdef TRIS_SIMD_ISECT
-    Visitor visitor(&m_vertices[0], &m_triangles[0]);
-#else
     Visitor visitor(&m_vertices[0]);
-#endif
     return bvh::intersect_two_levels(&m_bvh_nodes[0], &m_instance_transforms[0], &m_instance_bvh_roots[0], r, hit, visitor);
 }
 
 bool World::intersect_any(const Ray& r, HitInfo* hit) const
 {
-#ifdef TRIS_SIMD_ISECT
-    Visitor visitor(&m_vertices[0], &m_triangles[0]);
-#else
     Visitor visitor(&m_vertices[0]);
-#endif
     return bvh::intersect_any_two_levels(&m_bvh_nodes[0], &m_instance_transforms[0], &m_instance_bvh_roots[0], r, hit, visitor);
 }
 

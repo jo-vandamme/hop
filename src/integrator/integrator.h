@@ -14,7 +14,8 @@ class Integrator
 public:
     Integrator(std::shared_ptr<World> world);
 
-    virtual Spectrum get_radiance(const Ray& ray) = 0;
+    // Sample the incident radiance along a ray.
+    virtual Spectrum Li(const Ray& ray) const = 0;
 
     void set_world(std::shared_ptr<World> world);
 

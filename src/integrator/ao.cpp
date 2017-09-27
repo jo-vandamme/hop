@@ -1,5 +1,5 @@
 #include "hop.h"
-#include "integrator/ambient_occlusion.h"
+#include "integrator/ao.h"
 #include "math/math.h"
 #include "math/vec3.h"
 #include "geometry/ray.h"
@@ -15,7 +15,7 @@ AmbientOcclusionIntegrator::AmbientOcclusionIntegrator(std::shared_ptr<World> wo
 {
 }
 
-Spectrum AmbientOcclusionIntegrator::get_radiance(const Ray& ray)
+Spectrum AmbientOcclusionIntegrator::Li(const Ray& ray) const
 {
     SurfaceInteraction isect;
     HitInfo hit;

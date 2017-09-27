@@ -15,8 +15,16 @@ options = {
 }
 
 renderer = nil
+last_cursor_pos_x = nil
+last_cursor_pos_y = nil
+last_key = nil
 
 function key_handler(key, action)
+    if action == 1 then
+        last_key = key
+    elseif action == 0 then
+        last_key = nil
+    end
     -- space pressed
     if key == 32 and action == 1 then
         print("render reset")
@@ -33,9 +41,17 @@ function key_handler(key, action)
 end
 
 function mouse_button_handler(button, action, mods)
+    -- key D and left mouse button are pressed
+    if button == 0 and action == 1 and last_key == 68 then
+        dist = renderer:set_focus_point(last_cursor_pos_x, last_cursor_pos_y)
+        renderer:reset()
+        print("Distance: " .. dist)
+    end
 end
 
 function cursor_pos_handler(x, y)
+    last_cursor_pos_x = x
+    last_cursor_pos_y = y
 end
 
 function mouse_scroll_handler(x, y)

@@ -18,4 +18,9 @@ ProjectiveCamera::ProjectiveCamera(
                    m_cam2screen;
 }
 
+void ProjectiveCamera::set_focal_distance(Real d)
+{
+    m_focal_distance = d;
+}
+
 } // namespace hop

@@ -13,10 +13,10 @@ function init()
     world:preprocess()
 
     camera_desc = {
-        eye = Vec3.new(3, 3, 3),
+        eye = Vec3.new(0, 1, 6),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
-        fov = 90,
+        fov = 60,
         lens_radius = 0.0,
         focal_distance = 10
     }

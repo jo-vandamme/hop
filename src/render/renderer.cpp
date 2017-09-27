@@ -6,18 +6,22 @@
 #include "render/tile.h"
 #include "render/tonemap.h"
 #include "geometry/world.h"
+#include "geometry/ray.h"
+#include "geometry/hit_info.h"
+#include "geometry/surface_interaction.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
 #include "camera/camera.h"
+#include "camera/projective_camera.h"
 #include "camera/camera_sample.h"
 #include "camera/trackball.h"
 #include "math/math.h"
 #include "math/mat4.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
-#include "integrator/path_integrator.h"
-#include "integrator/ambient_occlusion.h"
-#include "integrator/debug_integrator.h"
+#include "integrator/pathtracing.h"
+#include "integrator/ao.h"
+#include "integrator/debug.h"
 #include "spectrum/spectrum.h"
 #include "options.h"
 #include "types.h"
@@ -138,6 +142,30 @@ Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera,
     });
 
     m_window->init();
+}
+
+Real Renderer::set_focus_point(const Vec2r& point)
+{
+    CameraSample sample;
+    sample.lens_point = Vec2r(0, 0);
+    sample.film_point = Vec2r(point.x, m_options.frame_size.y - point.y);
+    Ray ray;
+    m_camera->generate_ray(sample, &ray);
+
+    Real dist = (Real)pos_inf;
+    HitInfo hit;
+    if (m_world->intersect(ray, &hit))
+    {
+        SurfaceInteraction isect;
+        m_world->get_surface_interaction(hit, &isect);
+        Vec3r pos = isect.position;
+        dist = length(pos - m_camera->get_eye());
+
+        auto cam = std::dynamic_pointer_cast<ProjectiveCamera>(m_camera);
+        if (cam)
+            cam->set_focal_distance(dist);
+    }
+    return dist;
 }
 
 void Renderer::reset()
@@ -298,7 +326,7 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
                                   (Real)tile.y + 0.5 + dy * (Real)tile.h);
             Ray ray;
             Real ray_w = m_camera->generate_ray(sample, &ray);
-            Spectrum color = integrator->get_radiance(ray) * ray_w;
+            Spectrum color = integrator->Li(ray) * ray_w;
 
             for (uint32 j = 0; j < tile.h; ++j)
                 for (uint32 i = 0; i < tile.w; ++i)

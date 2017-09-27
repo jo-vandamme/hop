@@ -14,6 +14,8 @@ public:
                      const Transformr& cam2screen,
                      const Vec2u& film_res, Real lens_radius, Real focal_dist);
 
+    void set_focal_distance(Real d);
+
 protected:
     Transformr m_cam2screen;
     Transformr m_cam2raster;

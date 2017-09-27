@@ -1,5 +1,5 @@
 #include "hop.h"
-#include "integrator/path_integrator.h"
+#include "integrator/pathtracing.h"
 #include "math/math.h"
 #include "math/vec3.h"
 #include "geometry/ray.h"
@@ -23,7 +23,7 @@ static Real fresnel(Real costheta1, Real costheta2, Real n1, Real n2)
     return (sqr(rp) + sqr(rs)) * 0.5;
 }
 
-Spectrum PathIntegrator::get_radiance(const Ray& r)
+Spectrum PathIntegrator::Li(const Ray& r) const
 {
     Spectrum rad(0);
     Spectrum throughput(1);
@@ -45,14 +45,14 @@ Spectrum PathIntegrator::get_radiance(const Ray& r)
         Spectrum brdf;
         Real pdf;
 
-        uint32 mat = 2;
+        uint32 mat = 0;
         if (mat == 0)
         {
             // ray, brdf, pdf = random_sample(hit)
             ray.dir = (sample::cosine_sample_hemisphere(random<Real>(), random<Real>()));
             if (dot(ray.dir, n) < 0)
                 ray.dir = -ray.dir;
-            brdf = Spectrum(0.25, 0.65, 0.85) * (Real)one_over_pi;
+            brdf = Spectrum(0.9, 0.7, 0.4) * (Real)one_over_pi;
             pdf = dot(n, ray.dir) * (Real)one_over_pi;
         }
         else if (mat == 1)
@@ -81,7 +81,7 @@ Spectrum PathIntegrator::get_radiance(const Ray& r)
             {
                 ray.dir = refract_dir;
             }
-            brdf = Spectrum(0.80, 0.80, 0.80) * rcp(dot(ray.dir, n));
+            brdf = Spectrum(0.8, 0.8, 0.8) * rcp(dot(ray.dir, n));
             pdf = 1.0;
         }
 

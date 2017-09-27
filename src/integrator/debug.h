@@ -17,7 +17,7 @@ public:
     };
 
     DebugIntegrator(std::shared_ptr<World> world, Type type);
-    Spectrum get_radiance(const Ray& ray) override;
+    Spectrum Li(const Ray& ray) const override;
 
 private:
     Type m_type;

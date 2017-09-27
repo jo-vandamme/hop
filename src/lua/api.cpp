@@ -498,6 +498,17 @@ static int renderer_get_camera(lua_State* L)
     return 1;
 }
 
+static int renderer_set_focus_point(lua_State* L)
+{
+    Stack s(L);
+    auto renderer = s.get_renderer(1);
+    double x = s.get_double(2);
+    double y = s.get_double(3);
+    double dist = renderer->set_focus_point(Vec2r(x, y));
+    s.push_double(dist);
+    return 1;
+}
+
 static int get_path(lua_State* L)
 {
     Stack s(L);
@@ -590,6 +601,7 @@ void load_api(Environment& env, const std::string& path)
         { "render_interactive", renderer_render_interactive },
         { "reset",              renderer_reset },
         { "get_camera",         renderer_get_camera },
+        { "set_focus_point",    renderer_set_focus_point },
         { nullptr,              nullptr }
     };
     env.register_module("Renderer", renderer_funcs);

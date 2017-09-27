@@ -16,13 +16,14 @@ function init()
     world:preprocess()
 
     camera_desc = {
-        eye = Vec3.new(-295, -50, 195),
+        eye = Vec3.new(-420, -145, 190),
         target = Vec3.new(-2, -16, -37),
-        up = Vec3.new(-0.4, 0.8, -0.4),
+        up = Vec3.new(-0.44, 0.84, -0.33),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
-        fov = 90,
-        lens_radius = 0
+        fov = 60,
+        lens_radius = 3.0,
+        focal_distance = 190
     }
     camera = Camera.make_perspective(camera_desc)
 

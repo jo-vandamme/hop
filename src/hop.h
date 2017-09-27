@@ -6,7 +6,6 @@
 #undef DEBUG_TRIS
 
 #define BBOX_SIMD_ISECT
-#undef TRIS_SIMD_ISECT
 
 #define MIN_PRIMS_PER_LEAF 8
 #define NUM_SAH_SPLITS 20

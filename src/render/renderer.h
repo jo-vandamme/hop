@@ -10,6 +10,7 @@
 #include "render/film.h"
 #include "render/tile.h"
 #include "render/tonemap.h"
+#include "math/vec2.h"
 #include "math/vec3.h"
 #include "lua/environment.h"
 #include "util/log.h"
@@ -31,6 +32,8 @@ public:
     void reset();
 
     std::shared_ptr<Camera> get_camera() const { return m_camera; }
+
+    Real set_focus_point(const Vec2r& point);
 
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
 
