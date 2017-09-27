@@ -11,6 +11,7 @@ This is a work in progress, only done on my spare time.
 - Instancing
 - Depth of field
 - Data driven scene and render configuration via Lua
+- Adaptive sampling and firefly reduction
 - Interactive tiled rendering
 - Improved interactivity with adaptative resolution when the render starts
 - Trackball camera

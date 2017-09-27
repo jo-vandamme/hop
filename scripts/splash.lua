@@ -7,9 +7,9 @@ options = {
     spp = 10,
     adaptive_spp = 0,
     firefly_spp = 0,
-    adaptive_threshold = 0.1,
-    adaptive_exponent = 1,
-    firefly_threshold = 0.1,
+    adaptive_threshold = 0.5,
+    adaptive_exponent = 1.0,
+    firefly_threshold = 1.0,
     tonemap = "filmic",
     preview_spp = 1,
     preview = true
@@ -19,7 +19,7 @@ renderer = nil
 
 function init()
 
-    print("Skull scene")
+    print("Splash scene")
 
     shape = load_obj("/home/jo/dev/tracing/hop/models/splash.obj")
 

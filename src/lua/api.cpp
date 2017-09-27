@@ -32,6 +32,61 @@ void NOOPTIMIZE destroy(T& obj)
     obj.~T();
 }
 
+static int safe_getfield_int(lua_State* L, int idx, const char* field, int default_value)
+{
+    Stack s(L);
+    lua_getfield(L, idx, field);
+    int value = default_value;
+    if (!lua_isnil(L, -1))
+        value = s.get_int(-1);
+    s.pop(1);
+    return value;
+}
+
+static bool safe_getfield_bool(lua_State* L, int idx, const char* field, bool default_value)
+{
+    Stack s(L);
+    lua_getfield(L, idx, field);
+    bool value = default_value;
+    if (!lua_isnil(L, -1))
+        value = s.get_bool(-1);
+    s.pop(1);
+    return value;
+}
+
+static double safe_getfield_double(lua_State* L, int idx, const char* field, double default_value)
+{
+    Stack s(L);
+    lua_getfield(L, idx, field);
+    double value = default_value;
+    if (!lua_isnil(L, -1))
+        value = s.get_double(-1);
+    s.pop(1);
+    return value;
+}
+
+static Vec3r safe_getfield_vec3(lua_State* L, int idx, const char* field, Vec3r default_value)
+{
+    Stack s(L);
+    lua_getfield(L, idx, field);
+    Vec3r value = default_value;
+    if (!lua_isnil(L, -1))
+        value = s.get_vec3(-1);
+    s.pop(1);
+    return value;
+}
+
+static const char* safe_getfield_string(lua_State* L, int idx, const char* field, const char* default_value)
+{
+    Stack s(L);
+    lua_getfield(L, idx, field);
+    const char* value = default_value;
+    if (!lua_isnil(L, -1))
+        value = s.get_string(-1);
+    s.pop(1);
+    return value;
+}
+
 static int load_obj(lua_State* L)
 {
     Stack s(L);
@@ -321,24 +376,14 @@ static int camera_make_perspective(lua_State* L)
 {
     Stack s(L);
     luaL_checktype(L, 1, LUA_TTABLE);
-    lua_getfield(L, 1, "eye");
-    lua_getfield(L, 1, "target");
-    lua_getfield(L, 1, "up");
-    lua_getfield(L, 1, "frame_width");
-    lua_getfield(L, 1, "frame_height");
-    lua_getfield(L, 1, "fov");
-    lua_getfield(L, 1, "lens_radius");
-    lua_getfield(L, 1, "focal_distance");
-
-    Vec3r eye = s.get_vec3(-8);
-    Vec3r target = s.get_vec3(-7);
-    Vec3r up = s.get_vec3(-6);
-    double w = s.get_double(-5);
-    double h = s.get_double(-4);
-    double fov = s.get_double(-3);
-    double lensr = s.get_double(-2);
-    double dist = s.get_double(-1);
-    s.pop(8);
+    Vec3r eye = safe_getfield_vec3(L, 1, "eye", Vec3r(0, 0, 1));
+    Vec3r target = safe_getfield_vec3(L, 1, "target", Vec3r(0, 0, 0));
+    Vec3r up = safe_getfield_vec3(L, 1, "up", Vec3r(0, 1, 0));
+    double w = safe_getfield_double(L, 1, "frame_width", 512.0);
+    double h = safe_getfield_double(L, 1, "frame_height", 512.0);
+    double fov = safe_getfield_double(L, 1, "fov", 45.0);
+    double lensr = safe_getfield_double(L, 1, "lens_radius", 0.5);
+    double dist = safe_getfield_double(L, 1, "focal_distance", 1.0);
 
     std::shared_ptr<PerspectiveCamera> cam =
         std::make_shared<PerspectiveCamera>(eye, target, up, Vec2u(w, h), fov, lensr, dist);
@@ -355,46 +400,32 @@ static int camera_dtor(lua_State* L)
     return 0;
 }
 
+
 static int renderer_ctor(lua_State* L)
 {
     Stack s(L);
     std::shared_ptr<World> world = s.get_world(1);
     std::shared_ptr<Camera> cam = s.get_camera(2);
     luaL_checktype(L, 3, LUA_TTABLE);
-    lua_getfield(L, 3, "frame_width");
-    lua_getfield(L, 3, "frame_height");
-    lua_getfield(L, 3, "tile_width");
-    lua_getfield(L, 3, "tile_height");
-    lua_getfield(L, 3, "spp");
-    lua_getfield(L, 3, "preview_spp");
-    lua_getfield(L, 3, "preview");
-    lua_getfield(L, 3, "adaptive_spp");
-    lua_getfield(L, 3, "adaptive_threshold");
-    lua_getfield(L, 3, "adaptive_exponent");
-    lua_getfield(L, 3, "firefly_spp");
-    lua_getfield(L, 3, "firefly_threshold");
-    lua_getfield(L, 3, "tonemap");
-
-    const char* tonemap_str = s.get_string(-1);
-    double firefly_threshold = s.get_double(-2);
-    int firefly_spp = s.get_int(-3);
-    double adaptive_exponent = s.get_double(-4);
-    double adaptive_threshold = s.get_double(-5);
-    int adaptive_spp = s.get_int(-6);
-    bool preview = s.get_bool(-7);
-    int prev_spp = s.get_int(-8);
-    int spp = s.get_int(-9);
-    int th = s.get_int(-10);
-    int tw = s.get_int(-11);
-    int fh = s.get_int(-12);
-    int fw = s.get_int(-13);
-    s.pop(13);
+    int fw = safe_getfield_int(L, 3, "frame_width", 512);
+    int fh = safe_getfield_int(L, 3, "frame_height", 512);
+    int tw = safe_getfield_int(L, 3, "tile_width", 16);
+    int th = safe_getfield_int(L, 3, "tile_height", 16);
+    int spp = safe_getfield_int(L, 3, "spp", 10);
+    int preview_spp = safe_getfield_int(L, 3, "preview_spp", 1);
+    bool preview = safe_getfield_bool(L, 3, "preview", true);
+    int adaptive_spp = safe_getfield_int(L, 3, "adaptive_spp", 0);
+    int firefly_spp = safe_getfield_int(L, 3, "firefly_spp", 0);
+    double adaptive_threshold = safe_getfield_double(L, 3, "adaptive_threshold", 1.0);
+    double adaptive_exponent = safe_getfield_double(L, 3, "adaptive_exponent", 1.0);
+    double firefly_threshold = safe_getfield_double(L, 3, "firefly_threshold", 1.0);
+    const char* tonemap_str = safe_getfield_string(L, 3, "tonemap", "gamma");
 
     Options opts;
     opts.frame_size = Vec2u(fw, fh);
     opts.tile_size = Vec2u(tw, th);
     opts.spp = spp;
-    opts.preview_spp = prev_spp;
+    opts.preview_spp = preview_spp;
     opts.preview = preview;
     opts.adaptive_spp = adaptive_spp;
     opts.adaptive_threshold = adaptive_threshold;

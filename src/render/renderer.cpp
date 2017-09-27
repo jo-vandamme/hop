@@ -287,9 +287,6 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
 
     auto render = [&](uint32 spp)
     {
-        Vec3r color(0, 0, 0);
-        Real rcp_spp = rcp((Real)spp);
-
         for (uint32 k = 0; k < spp; ++k)
         {
             Real dx = random<Real>();
@@ -300,12 +297,12 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
                                   (Real)tile.y + 0.5 + dy * (Real)tile.h);
             Ray ray;
             Real ray_w = m_camera->generate_ray(sample, &ray);
-            color += integrator->get_radiance(ray) * ray_w * rcp_spp;
-        }
+            Vec3r color = integrator->get_radiance(ray) * ray_w;
 
-        for (uint32 j = 0; j < tile.h; ++j)
-            for (uint32 i = 0; i < tile.w; ++i)
-                m_film->add_sample(tile.x + i, tile.y + j, color);
+            for (uint32 j = 0; j < tile.h; ++j)
+                for (uint32 i = 0; i < tile.w; ++i)
+                    m_film->add_sample(tile.x + i, tile.y + j, color);
+        }
     };
 
     // Render with spp samples per pixel
@@ -417,7 +414,7 @@ void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x,
         {
             for (uint32 j = 0; j < size_x; ++j)
             {
-                float n = float(pixels[i * size_x + j].num_samples) / 100.0f;
+                float n = float(pixels[i * size_x + j].num_samples) / 1000.0f;
                 framebuffer[i * size_x + j] = Vec3f(n, n, n);
             }
         }

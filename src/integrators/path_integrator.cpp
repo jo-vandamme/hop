@@ -37,7 +37,7 @@ Vec3r PathIntegrator::get_radiance(const Ray& r)
         Vec3r brdf;
         Real pdf;
 
-        uint32 mat = 2;
+        uint32 mat = 0;
         if (mat == 0)
         {
             // ray, brdf, pdf = random_sample(hit)

@@ -2,24 +2,18 @@
 options = {
     frame_width = 800,
     frame_height = 600,
-    tile_width = 16,
-    tile_height = 16,
     spp = 10,
-    adaptive_spp = 0,
-    firefly_spp = 0,
-    adaptive_threshold = 0.1,
-    adaptive_exponent = 1,
-    firefly_threshold = 0.1,
-    tonemap = "filmic",
-    preview_spp = 1,
-    preview = true
+    adaptive_spp = 100,
+    adaptive_threshold = 1.0,
+    adaptive_exponent = 2,
+    preview_spp = 2,
 }
 
 renderer = nil
 
 function init()
 
-    print("Skull scene")
+    print("Train scene")
 
     shape = load_obj("/home/jo/dev/tracing/scenes/train.obj")
 
@@ -29,13 +23,10 @@ function init()
 
     camera_desc = {
         eye = Vec3.new(50, 30, 50),
-        target = Vec3.new(0, 0, 0),
-        up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
         lens_radius = 0.0,
-        focal_distance = 40
     }
     camera = Camera.make_perspective(camera_desc)
 
