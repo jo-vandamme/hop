@@ -1,4 +1,4 @@
-#include "integrators/integrator.h"
+#include "integrator/integrator.h"
 #include "geometry/world.h"
 
 #include <memory>

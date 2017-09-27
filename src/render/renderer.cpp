@@ -15,9 +15,10 @@
 #include "math/mat4.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
-#include "integrators/path_integrator.h"
-#include "integrators/ambient_occlusion.h"
-#include "integrators/debug_integrator.h"
+#include "integrator/path_integrator.h"
+#include "integrator/ambient_occlusion.h"
+#include "integrator/debug_integrator.h"
+#include "spectrum/spectrum.h"
 #include "options.h"
 #include "types.h"
 
@@ -297,7 +298,7 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
                                   (Real)tile.y + 0.5 + dy * (Real)tile.h);
             Ray ray;
             Real ray_w = m_camera->generate_ray(sample, &ray);
-            Vec3r color = integrator->get_radiance(ray) * ray_w;
+            Spectrum color = integrator->get_radiance(ray) * ray_w;
 
             for (uint32 j = 0; j < tile.h; ++j)
                 for (uint32 i = 0; i < tile.w; ++i)
@@ -311,8 +312,8 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
     // Render with an adaptive number of samples per pixel proportional to the standard deviation
     if (m_num_adaptive_samples > 0 && tile.n != 0 && tile.w == 1 && tile.h == 1)
     {
-        Vec3r stddev = m_film->get_standard_deviation(tile.x, tile.y);
-        Real v = pow(clamp(max_component(stddev) / m_adaptive_threshold, 0.0, 1.0), m_adaptive_exponent);
+        Real stddev = m_film->get_standard_deviation(tile.x, tile.y);
+        Real v = pow(clamp(stddev / m_adaptive_threshold, 0.0, 1.0), m_adaptive_exponent);
         uint32 num_adaptive_samples = (uint32)(v * (Real)m_num_adaptive_samples);
         if (num_adaptive_samples > 0)
             render(num_adaptive_samples);
@@ -321,8 +322,8 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
     // Render num_firefly_samples if the standard deviation is > than the threshold
     if (m_num_firefly_samples > 0 && tile.n != 0 && tile.w == 1 && tile.h == 1)
     {
-        Vec3r stddev = m_film->get_standard_deviation(tile.x, tile.y);
-        if (max_component(stddev) > m_firefly_threshold)
+        Real stddev = m_film->get_standard_deviation(tile.x, tile.y);
+        if (stddev > m_firefly_threshold)
             render(m_num_firefly_samples);
     }
 }
@@ -392,7 +393,7 @@ void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x,
         {
             for (uint32 j = 0; j < size_x; ++j)
             {
-                const Vec3r col = pixels[i * size_x + j].color;
+                const Spectrum col = pixels[i * size_x + j].color;
                 framebuffer[i * size_x + j] = tonemap(m_tonemap, col);
             }
         }
@@ -403,8 +404,8 @@ void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x,
         {
             for (uint32 j = 0; j < size_x; ++j)
             {
-                const Vec3r dev = sqrt(pixels[i * size_x + j].variance);
-                framebuffer[i * size_x + j] = Vec3f(dev.x, dev.y, dev.z);
+                const Real dev = sqrt(pixels[i * size_x + j].variance);
+                framebuffer[i * size_x + j] = Vec3f(dev, dev, dev);
             }
         }
     }

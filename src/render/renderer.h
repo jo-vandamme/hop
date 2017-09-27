@@ -13,7 +13,7 @@
 #include "math/vec3.h"
 #include "lua/environment.h"
 #include "util/log.h"
-#include "integrators/integrator.h"
+#include "integrator/integrator.h"
 
 #include <memory>
 #include <mutex>

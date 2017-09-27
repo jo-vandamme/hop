@@ -3,6 +3,7 @@
 #include "math/vec3.h"
 #include "geometry/ray.h"
 #include "geometry/world.h"
+#include "spectrum/spectrum.h"
 
 #include <memory>
 
@@ -13,7 +14,7 @@ class Integrator
 public:
     Integrator(std::shared_ptr<World> world);
 
-    virtual Vec3r get_radiance(const Ray& ray) = 0;
+    virtual Spectrum get_radiance(const Ray& ray) = 0;
 
     void set_world(std::shared_ptr<World> world);
 

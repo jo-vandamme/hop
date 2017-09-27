@@ -1,7 +1,8 @@
 #pragma once
 
-#include "integrators/integrator.h"
+#include "integrator/integrator.h"
 #include "geometry/ray.h"
+#include "sampler/sampling.h"
 
 namespace hop {
 
@@ -16,7 +17,7 @@ public:
     };
 
     DebugIntegrator(std::shared_ptr<World> world, Type type);
-    Vec3r get_radiance(const Ray& ray) override;
+    Spectrum get_radiance(const Ray& ray) override;
 
 private:
     Type m_type;

@@ -57,11 +57,52 @@ public:
         return *this;
     }
 
+    Vec3<T>& operator/=(const Vec3<T>& v)
+    {
+        x *= rcp(v.x);
+        y *= rcp(v.y);
+        z *= rcp(v.z);
+        return *this;
+    }
+
+    Vec3<T>& operator/=(const T v)
+    {
+        T inv_v = rcp(v);
+        x *= inv_v;
+        y *= inv_v;
+        z *= inv_v;
+        return *this;
+    }
+
     Vec3<T>& operator+=(const Vec3<T>& v)
     {
         x += v.x;
         y += v.y;
         z += v.z;
+        return *this;
+    }
+
+    Vec3<T>& operator+=(const T v)
+    {
+        x += v;
+        y += v;
+        z += v;
+        return *this;
+    }
+
+    Vec3<T>& operator-=(const Vec3<T>& v)
+    {
+        x -= v.x;
+        y -= v.y;
+        z -= v.z;
+        return *this;
+    }
+
+    Vec3<T>& operator-=(const T v)
+    {
+        x -= v;
+        y -= v;
+        z -= v;
         return *this;
     }
 };
@@ -117,6 +158,26 @@ template <typename T>
 inline Vec3<T> operator*(const T f, const Vec3<T>& v)
 {
     return Vec3<T>(f * v.x, f * v.y, f * v.z);
+}
+
+template <typename T>
+inline Vec3<T> operator/(const Vec3<T>& a, const Vec3<T>& b)
+{
+    return Vec3<T>(a.x * rcp(b.x), a.y * rcp(b.y), a.z * rcp(b.z));
+}
+
+template <typename T>
+inline Vec3<T> operator/(const Vec3<T>& v, const T f)
+{
+    T inv_f = rcp(f);
+    return Vec3<T>(v.x * inv_f, v.y * inv_f, v.z * inv_f);
+}
+
+template <typename T>
+inline Vec3<T> operator/(const T f, const Vec3<T>& v)
+{
+    T inv_f = rcp(f);
+    return Vec3<T>(inv_f * v.x, inv_f * v.y, inv_f * v.z);
 }
 
 template <typename T>

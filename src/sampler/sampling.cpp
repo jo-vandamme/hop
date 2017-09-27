@@ -1,4 +1,4 @@
-#include "integrators/sampling.h"
+#include "sampler/sampling.h"
 #include "math/math.h"
 #include "math/vec3.h"
 

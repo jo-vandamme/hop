@@ -1,12 +1,13 @@
 #include "hop.h"
-#include "integrators/path_integrator.h"
+#include "integrator/path_integrator.h"
 #include "math/math.h"
 #include "math/vec3.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
 #include "geometry/surface_interaction.h"
 #include "geometry/world.h"
-#include "integrators/sampling.h"
+#include "sampler/sampling.h"
+#include "spectrum/spectrum.h"
 
 namespace hop {
 
@@ -15,10 +16,17 @@ PathIntegrator::PathIntegrator(std::shared_ptr<World> world)
 {
 }
 
-Vec3r PathIntegrator::get_radiance(const Ray& r)
+static Real fresnel(Real costheta1, Real costheta2, Real n1, Real n2)
 {
-    Vec3r rad(0, 0, 0);
-    Vec3r throughput(1, 1, 1);
+    Real rp = (n2 * costheta1 - n1 * costheta2) * rcp(n2 * costheta1 + n1 * costheta2);
+    Real rs = (n1 * costheta1 - n2 * costheta2) * rcp(n1 * costheta1 + n2 * costheta2);
+    return (sqr(rp) + sqr(rs)) * 0.5;
+}
+
+Spectrum PathIntegrator::get_radiance(const Ray& r)
+{
+    Spectrum rad(0);
+    Spectrum throughput(1);
     uint32 depth = 0;
 
     Ray ray = r;
@@ -27,24 +35,24 @@ Vec3r PathIntegrator::get_radiance(const Ray& r)
         HitInfo hit;
         if (!m_world->intersect(ray, &hit))
         {
-            rad += throughput * Vec3r(1.0, 1.0, 1.0); // sample sky
+            rad += throughput * Spectrum(1); // sample sky
             break;
         }
         SurfaceInteraction isect;
         m_world->get_surface_interaction(hit, &isect);
         Vec3r n = normalize(isect.normal);
 
-        Vec3r brdf;
+        Spectrum brdf;
         Real pdf;
 
-        uint32 mat = 0;
+        uint32 mat = 2;
         if (mat == 0)
         {
             // ray, brdf, pdf = random_sample(hit)
             ray.dir = (sample::cosine_sample_hemisphere(random<Real>(), random<Real>()));
             if (dot(ray.dir, n) < 0)
                 ray.dir = -ray.dir;
-            brdf = Vec3r(0.25, 0.65, 0.85) * (Real)one_over_pi;
+            brdf = Spectrum(0.25, 0.65, 0.85) * (Real)one_over_pi;
             pdf = dot(n, ray.dir) * (Real)one_over_pi;
         }
         else if (mat == 1)
@@ -52,16 +60,28 @@ Vec3r PathIntegrator::get_radiance(const Ray& r)
             ray.dir = reflect(ray.dir, n);
             if (dot(ray.dir, n) < 0)
                 ray.dir = -ray.dir;
-            brdf = Vec3r(0.25, 0.65, 0.85) * rcp(dot(ray.dir, n));
+            brdf = Spectrum(0.25, 0.65, 0.85) * rcp(dot(ray.dir, n));
             pdf = 1.0;
         }
         else
         {
-            Real dot_n_dir = dot(n, ray.dir);
-            Real n1_over_n2 = dot_n_dir < 0 ? 1.0 * rcp(1.33) : 1.33 * rcp(1.0);
-            ray.dir = refract(ray.dir, n, n1_over_n2);
-            //brdf = Vec3r(0.25, 0.65, 0.85) * rcp(dot(ray.dir, n));
-            brdf = Vec3r(0.80, 0.80, 1.00) * rcp(dot(ray.dir, n));
+            Real n_dot_dir = dot(n, ray.dir);
+            Real n1 = n_dot_dir < 0 ? 1.0  : 1.5;
+            Real n2 = n_dot_dir < 0 ? 1.5 : 1.0;
+            Vec3r refract_dir = refract(ray.dir, n, n1 * rcp(n2));
+            Real fresnel_coeff = fresnel(abs(n_dot_dir), abs(dot(refract_dir, n)), n1, n2);
+            Real p = random<Real>();
+            if (p < fresnel_coeff)
+            {
+                ray.dir = reflect(ray.dir, n);
+                if (n_dot_dir > 0 && dot(ray.dir, n) < 0)
+                    ray.dir = -ray.dir;
+            }
+            else
+            {
+                ray.dir = refract_dir;
+            }
+            brdf = Spectrum(0.80, 0.80, 0.80) * rcp(dot(ray.dir, n));
             pdf = 1.0;
         }
 

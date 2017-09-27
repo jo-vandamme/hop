@@ -1,12 +1,12 @@
 #include "hop.h"
-#include "integrators/ambient_occlusion.h"
+#include "integrator/ambient_occlusion.h"
 #include "math/math.h"
 #include "math/vec3.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
 #include "geometry/surface_interaction.h"
 #include "geometry/world.h"
-#include "integrators/sampling.h"
+#include "sampler/sampling.h"
 
 namespace hop {
 
@@ -15,7 +15,7 @@ AmbientOcclusionIntegrator::AmbientOcclusionIntegrator(std::shared_ptr<World> wo
 {
 }
 
-Vec3r AmbientOcclusionIntegrator::get_radiance(const Ray& ray)
+Spectrum AmbientOcclusionIntegrator::get_radiance(const Ray& ray)
 {
     SurfaceInteraction isect;
     HitInfo hit;
@@ -25,7 +25,6 @@ Vec3r AmbientOcclusionIntegrator::get_radiance(const Ray& ray)
     m_world->get_surface_interaction(hit, &isect);
     Vec3r n = normalize(isect.normal);
 
-    Vec3r occlusion;
     Real occlusion_amount = 1.0;
     const Real occlusion_step = 1.0 / (Real)NUM_AO_RAYS;
     for (int i = 0; i < NUM_AO_RAYS; ++i)
@@ -43,9 +42,7 @@ Vec3r AmbientOcclusionIntegrator::get_radiance(const Ray& ray)
         if (m_world->intersect_any(occlusion_ray, &occlusion_hit))
             occlusion_amount -= occlusion_step;
     }
-    occlusion = occlusion_amount * Vec3r(1, 1, 1);
-
-    return occlusion;
+    return Spectrum(1.0) * occlusion_amount;
 }
 
 } // namespace hop

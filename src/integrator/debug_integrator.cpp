@@ -1,4 +1,4 @@
-#include "integrators/debug_integrator.h"
+#include "integrator/debug_integrator.h"
 #include "geometry/world.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
@@ -11,23 +11,23 @@ DebugIntegrator::DebugIntegrator(std::shared_ptr<World> world, Type type)
 {
 }
 
-Vec3r DebugIntegrator::get_radiance(const Ray& ray)
+Spectrum DebugIntegrator::get_radiance(const Ray& ray)
 {
     HitInfo hit;
     SurfaceInteraction isect;
     if (!m_world->intersect(ray, &hit))
-        return Vec3r(0, 0, 0);
+        return Spectrum(0, 0, 0);
 
     m_world->get_surface_interaction(hit, &isect);
 
     if (m_type == POSITION)
-        return isect.position;
+        return Spectrum(isect.position);
     else if (m_type == NORMALS)
-        return isect.normal;
+        return Spectrum(isect.normal);
     else if (m_type == UVS)
-        return Vec3r(isect.uv.x, isect.uv.y, 0);
+        return Spectrum(isect.uv.x, isect.uv.y, 0);
 
-    return Vec3r(1, 0, 0);
+    return Spectrum(1, 0, 0);
 }
 
 } // namespace hop
