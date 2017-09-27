@@ -1,13 +1,15 @@
 #include "lua/environment.h"
 #include "util/log.h"
+#include "util/file_util.h"
 #include "except.h"
 
 #include <cstdarg>
 #include <cstring>
+#include <string>
 
 namespace hop { namespace lua {
 
-extern void load_api(Environment& env);
+extern void load_api(Environment& env, const std::string& path);
 
 void check_errors(lua_State* L, int status)
 {
@@ -61,14 +63,29 @@ Environment::~Environment()
         lua_close(L);
 }
 
+void Environment::set_path(const char* path)
+{
+    Log("lua") << DEBUG << "Adding " << path << " to Lua path";
+    lua_getglobal(L, "package");
+    lua_getfield(L, -1, "path");
+    std::string cur_path = std::string(lua_tostring(L, -1)) + ";" + path + "/?.lua";
+    lua_pop(L, 1);
+    lua_pushstring(L, cur_path.c_str());
+    lua_setfield(L, -2, "path");
+    lua_pop(L, 1);
+}
+
 void Environment::load(const char* file)
 {
+    std::string path = remove_filename(file);
+    set_path(path.c_str());
+
     int status = luaL_loadfile(L, file);
 
     lua_pushcfunction(L, lua_print_func);
     lua_setglobal(L, "print");
 
-    load_api(*this);
+    load_api(*this, path + "/");
 
     if (status == 0)
         lua_pcall(L, 0, 0, 0);

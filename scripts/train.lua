@@ -1,21 +1,13 @@
-
-options = {
-    frame_width = 800,
-    frame_height = 600,
-    spp = 10,
-    adaptive_spp = 100,
-    adaptive_threshold = 1.0,
-    adaptive_exponent = 2,
-    preview_spp = 2,
-}
+require("settings")
+require("materials")
 
 renderer = nil
 
 function init()
 
-    print("Train scene")
+    print("Loading train scene")
 
-    shape = load_obj("/home/jo/dev/tracing/scenes/train.obj")
+    shape = load_obj(get_path() .. "models/train.obj")
 
     world = World.new()
     world:add_shape(make_instance(shape, make_scale(0.1, 0.1, 0.1)))

@@ -19,6 +19,8 @@ public:
     void register_function(const char* func_name, const lua_CFunction func);
     void register_module(const char* module_name, const luaL_Reg* funcs);
 
+    void set_path(const char* path);
+
     Environment(const Environment&) = delete;
     Environment& operator=(const Environment&) = delete;
 

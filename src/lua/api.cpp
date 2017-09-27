@@ -19,10 +19,12 @@
 #include <sstream>
 #include <memory>
 #include <cstdio>
+#include <string>
 
 namespace hop { namespace lua {
 
 static Environment* g_environment;
+static std::string g_path;
 
 // This is here because GCC was optmizing away the destructor calls
 // causing a segfault when during lua exit
@@ -465,9 +467,19 @@ static int renderer_reset(lua_State* L)
     return 0;
 }
 
-void load_api(Environment& env)
+static int get_path(lua_State* L)
+{
+    Stack s(L);
+    s.push_string(g_path.c_str());
+    return 1;
+}
+
+void load_api(Environment& env, const std::string& path)
 {
     g_environment = &env;
+    g_path = path;
+
+    env.register_function("get_path", get_path);
 
     env.register_function("load_obj", load_obj);
 
