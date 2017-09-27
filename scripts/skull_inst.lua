@@ -1,21 +1,11 @@
-
-options = {
-    frame_width = 800,
-    frame_height = 800,
-    tile_width = 16,
-    tile_height = 16,
-    spp = 1,
-    preview_spp = 1,
-    preview = true
-}
-
-renderer = nil
+require("settings")
+require("materials")
 
 function init()
 
-    print("Skull scene")
+    print("Loading Skull instancing scene")
 
-    shape = load_obj("/home/jo/dev/tracing/hop/models/skull.obj")
+    shape = load_obj(get_path() .. "models/skull.obj")
 
     world = World.new()
 
@@ -49,7 +39,6 @@ function init()
     camera_desc = {
         eye = eye,
         target = target,
-        up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
@@ -61,17 +50,4 @@ function init()
     renderer = Renderer.new(world, camera, options)
     renderer:render_interactive()
 
-end
-
-function key_handler(key, action)
-    -- space pressed
-    if key == 32 and action == 1 then
-        renderer:reset()
-    end
-end
-
-function mouse_button_handler(button, action, mods)
-end
-
-function cursor_pos_handler(x, y)
 end

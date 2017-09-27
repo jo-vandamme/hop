@@ -1,24 +1,11 @@
-----------------------------
--- Hop example scene file --
-----------------------------
-
-options = {
-    frame_width = 1024,
-    frame_height = 800,
-    tile_width = 64,
-    tile_height = 64,
-    spp = 10,
-    preview_spp = 1,
-    preview = true
-}
-
-renderer = nil
+require("settings")
+require("materials")
 
 function init()
 
-    print("Skull scene")
+    print("Loading Skull scene")
 
-    shape = load_obj("/home/jo/dev/tracing/hop/models/skull.obj")
+    shape = load_obj(get_path() .. "models/skull.obj")
 
     world = World.new()
     world:add_shape(shape)
@@ -35,8 +22,6 @@ function init()
 
     camera_desc = {
         eye = Vec3.new(3, 1, 5),
-        target = Vec3.new(0, 0, 0),
-        up = Vec3.new(0, 1, 0),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
@@ -48,17 +33,4 @@ function init()
     renderer = Renderer.new(world, camera, options)
     renderer:render_interactive()
 
-end
-
-function key_handler(key, action)
-    -- space pressed
-    if key == 32 and action == 1 then
-        renderer:reset()
-    end
-end
-
-function mouse_button_handler(button, action, mods)
-end
-
-function cursor_pos_handler(x, y)
 end
