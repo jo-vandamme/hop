@@ -1,8 +1,6 @@
 require("settings")
 require("materials")
 
-renderer = nil
-
 function init()
 
     print("Loading train scene")
@@ -14,11 +12,12 @@ function init()
     world:preprocess()
 
     camera_desc = {
-        eye = Vec3.new(50, 30, 50),
+        eye = Vec3.new(40, 20, 40),
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 90,
         lens_radius = 0.0,
+        focal_distance = 40
     }
     camera = Camera.make_perspective(camera_desc)
 
@@ -27,18 +26,3 @@ function init()
 
 end
 
-function key_handler(key, action)
-    -- space pressed
-    if key == 32 and action == 1 then
-        renderer:reset()
-    end
-end
-
-function mouse_button_handler(button, action, mods)
-end
-
-function cursor_pos_handler(x, y)
-end
-
-function mouse_scroll_handler(x, y)
-end

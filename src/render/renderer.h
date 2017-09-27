@@ -30,6 +30,8 @@ public:
     int render(bool interactive = true);
     void reset();
 
+    std::shared_ptr<Camera> get_camera() const { return m_camera; }
+
     void set_lua_environment(lua::Environment* env) { m_lua = env; }
 
 private:

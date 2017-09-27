@@ -402,6 +402,29 @@ static int camera_dtor(lua_State* L)
     return 0;
 }
 
+static int camera_get_eye(lua_State* L)
+{
+    Stack s(L);
+    auto camera = s.get_camera(1);
+    s.push_vec3(camera->get_eye());
+    return 1;
+}
+
+static int camera_get_target(lua_State* L)
+{
+    Stack s(L);
+    auto camera = s.get_camera(1);
+    s.push_vec3(camera->get_target());
+    return 1;
+}
+
+static int camera_get_up(lua_State* L)
+{
+    Stack s(L);
+    auto camera = s.get_camera(1);
+    s.push_vec3(camera->get_up());
+    return 1;
+}
 
 static int renderer_ctor(lua_State* L)
 {
@@ -465,6 +488,14 @@ static int renderer_reset(lua_State* L)
     auto renderer = s.get_renderer(1);
     renderer->reset();
     return 0;
+}
+
+static int renderer_get_camera(lua_State* L)
+{
+    Stack s(L);
+    auto renderer = s.get_renderer(1);
+    s.push_camera(renderer->get_camera());
+    return 1;
 }
 
 static int get_path(lua_State* L)
@@ -546,6 +577,9 @@ void load_api(Environment& env, const std::string& path)
     const luaL_Reg camera_funcs[] = {
         { "make_perspective", camera_make_perspective },
         { "__gc",             camera_dtor },
+        { "get_eye",          camera_get_eye },
+        { "get_target",       camera_get_target },
+        { "get_up",           camera_get_up },
         { nullptr,            nullptr }
     };
     env.register_module("Camera", camera_funcs);
@@ -555,6 +589,7 @@ void load_api(Environment& env, const std::string& path)
         { "__gc",               renderer_dtor },
         { "render_interactive", renderer_render_interactive },
         { "reset",              renderer_reset },
+        { "get_camera",         renderer_get_camera },
         { nullptr,              nullptr }
     };
     env.register_module("Renderer", renderer_funcs);
