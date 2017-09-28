@@ -253,8 +253,8 @@ int Renderer::render(bool interactive)
     StopWatch timer;
     timer.start();
 
-    uint32 rays_per_s = 0;
-    uint32 num_samples = 0;
+    //uint32 rays_per_s = 0;
+    //uint32 num_samples = 0;
 
     StopWatch loop_timer;
     loop_timer.start();

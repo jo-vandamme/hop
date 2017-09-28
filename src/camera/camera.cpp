@@ -1,4 +1,3 @@
-#include "hop.h"
 #include "camera/camera.h"
 #include "math/vec3.h"
 #include "math/transform.h"

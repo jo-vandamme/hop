@@ -14,6 +14,8 @@ typedef std::uint32_t uint32;
 typedef std::int64_t int64;
 typedef std::uint64_t uint64;
 
+typedef double Real;
+
 using ShapeID = uint32;
 using MaterialID = uint32;
 

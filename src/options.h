@@ -1,6 +1,5 @@
 #pragma once
 
-#include "hop.h"
 #include "types.h"
 #include "math/vec2.h"
 #include "render/tonemap.h"

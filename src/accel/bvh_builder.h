@@ -6,7 +6,6 @@
 #include "math/math.h"
 #include "math/vec3.h"
 #include "math/bbox.h"
-#include "util/log.h"
 
 #include <vector>
 #include <functional>

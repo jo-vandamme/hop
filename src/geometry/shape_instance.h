@@ -1,8 +1,6 @@
 #pragma once
 
 #include "geometry/shape.h"
-#include "geometry/hit_info.h"
-#include "geometry/surface_interaction.h"
 #include "geometry/shape_manager.h"
 #include "math/bbox.h"
 #include "math/transform.h"
@@ -23,8 +21,6 @@ public:
     bool is_instance() const override { return true; };
     const BBoxr& get_bbox() const override { return m_bbox; };
     const Vec3r& get_centroid() const override { return m_centroid; }
-
-    void get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info) override;
 
     Shape* get_shape() const { return m_shape; }
 

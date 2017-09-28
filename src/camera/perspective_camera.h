@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hop.h"
+#include "types.h"
 #include "camera/projective_camera.h"
 #include "camera/camera_sample.h"
 #include "math/transform.h"

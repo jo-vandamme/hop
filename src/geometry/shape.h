@@ -2,7 +2,6 @@
 
 #include "types.h"
 #include "math/bbox.h"
-#include "geometry/surface_interaction.h"
 
 #include <string>
 #include <atomic>
@@ -44,8 +43,6 @@ public:
 
     uint32 get_num_instances() const { return m_num_instances; }
     uint32 inc_instance_count() { return ++m_num_instances; }
-
-    virtual void get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info) = 0;
 
 protected:
     uint8 m_mask;

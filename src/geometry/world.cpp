@@ -1,7 +1,7 @@
 #include "hop.h"
 #include "geometry/world.h"
 #include "geometry/shape.h"
-#include "geometry/triangle.h"
+#include "geometry/shape_instance.h"
 #include "geometry/triangle_mesh.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"

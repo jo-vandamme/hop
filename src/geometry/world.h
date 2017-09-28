@@ -1,26 +1,21 @@
 #pragma once
 
-#include "hop.h"
-#include "geometry/shape.h"
-#include "geometry/triangle_mesh.h"
-#include "geometry/shape_instance.h"
-#include "geometry/shape_manager.h"
-#include "geometry/ray.h"
-#include "geometry/hit_info.h"
-#include "geometry/surface_interaction.h"
-#include "material/material.h"
+#include "types.h"
 #include "accel/bvh_node.h"
 #include "math/bbox.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
 #include "math/transform.h"
-
 #include "util/log.h"
 
 #include <memory>
 #include <vector>
 
 namespace hop {
+
+class Ray;
+class HitInfo;
+class SurfaceInteraction;
 
 class World
 {

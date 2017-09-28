@@ -25,5 +25,3 @@
 #define ALIGN(x) __attribute__((aligned((x))))
 
 #define NOOPTIMIZE __attribute__((optimize("O0")))
-
-typedef double Real;

@@ -34,8 +34,6 @@ function init()
     d = (bbox:max() - bbox:min()):length()
     eye = target + Vec3.new(d * 0.0, d * 0.0, d * 0.5)
 
-    world:preprocess()
-
     camera_desc = {
         eye = eye,
         target = target,
