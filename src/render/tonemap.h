@@ -34,6 +34,7 @@ inline Vec3f tonemap(ToneMapType type, const Spectrum& color)
                          pow(col.y * rcp(1.0f + col.y), inv_gamma),
                          pow(col.z * rcp(1.0f + col.z), inv_gamma));
 
+        // Jim Jejl and Richard Burgess-Dawson formula
         case ToneMapType::FILMIC: {
             Vec3f x = max(Vec3f(0.0f), col - 0.004f);
             return (x * (6.2f * x + 0.5f)) * rcp(x * (6.2f * x + 1.7f) + 0.06f);

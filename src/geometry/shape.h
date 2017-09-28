@@ -10,8 +10,6 @@
 
 namespace hop {
 
-using ShapeID = uint32;
-
 enum ShapeType
 {
     TRIANGLE_MESH

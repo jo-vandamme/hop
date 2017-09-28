@@ -11,6 +11,7 @@
 #include "geometry/triangle.h"
 #include "geometry/triangle_mesh.h"
 #include "geometry/shape_manager.h"
+#include "material/material_manager.h"
 #include "except.h"
 
 #include <memory>
@@ -70,6 +71,8 @@ ShapeID load(const char* file)
     std::vector<Vec2r> uvs;
     std::vector<Triangle> triangles;
 
+    MaterialID material_id = 0;
+
     std::string mesh_name = "default";
 
     size_t line_num = 0;
@@ -89,11 +92,9 @@ ShapeID load(const char* file)
         std::string keyword = tokens[0];
         tokens.erase(tokens.begin());
 
-        if (keyword == "mtllib")
+        if (keyword == "usemtl")
         {
-        }
-        else if (keyword == "newmtl")
-        {
+            material_id = MaterialManager::create(tokens[0]);
         }
         else if (keyword == "v")
         {
@@ -183,6 +184,7 @@ ShapeID load(const char* file)
 
                 tri.bbox = BBoxr(tri.vertices[0], tri.vertices[1], tri.vertices[2]);
                 tri.centroid = tri.bbox.get_centroid();
+                tri.material_id = material_id;
 
                 triangles.push_back(std::move(tri));
             }

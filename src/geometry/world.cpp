@@ -68,8 +68,13 @@ void World::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info
                hit.b1 * m_uvs[hit.primitive_id * 3 + 1] +
                hit.b2 * m_uvs[hit.primitive_id * 3 + 2];
 
-    info->position = transform_point(m_instance_transforms[hit.shape_id], info->position);
-    info->normal = transform_normal(m_instance_transforms[hit.shape_id], info->normal);
+    info->t = hit.t;
+    info->shape_id = hit.shape_id;
+    info->material_id = m_materials[hit.primitive_id];
+
+    const Transformr xfm = inverse(m_instance_inv_xfm[hit.shape_id]);
+    info->position = transform_point(xfm, info->position);
+    info->normal = transform_normal(xfm, info->normal);
 }
 
 void World::preprocess()
@@ -117,10 +122,10 @@ void World::partition_instances()
     Log("world") << INFO << "building scene BVH tree (" << instances_vec.size() << " instanced meshes)";
 
     m_instance_bvh_roots.resize(instances_vec.size());
-    m_instance_transforms.resize(instances_vec.size());
+    m_instance_inv_xfm.resize(instances_vec.size());
 
     for (size_t i = 0; i < instances_vec.size(); ++i)
-        m_instance_transforms[i] = instances_vec[i]->get_transform();
+        m_instance_inv_xfm[i] = inverse(instances_vec[i]->get_transform());
 
     auto inst_leaf_cb = [&](bvh::Node* leaf, const std::vector<ShapeInstance*>& instances)
     {
@@ -196,7 +201,7 @@ void World::partition_meshes()
                 m_uvs[vertex_offset + 1] = tri.uvs[1];
                 m_uvs[vertex_offset + 2] = tri.uvs[2];
 
-                m_materials[triangle_offset] = tri.material;
+                m_materials[triangle_offset] = tri.material_id;
 
                 vertex_offset += 3;
                 ++triangle_offset;
@@ -281,13 +286,13 @@ inline bool Visitor::intersect_any(const bvh::Node& node, const Ray& ray, HitInf
 bool World::intersect(const Ray& r, HitInfo* hit) const
 {
     Visitor visitor(&m_vertices[0]);
-    return bvh::intersect_two_levels(&m_bvh_nodes[0], &m_instance_transforms[0], &m_instance_bvh_roots[0], r, hit, visitor);
+    return bvh::intersect_two_levels(&m_bvh_nodes[0], &m_instance_inv_xfm[0], &m_instance_bvh_roots[0], r, hit, visitor);
 }
 
 bool World::intersect_any(const Ray& r, HitInfo* hit) const
 {
     Visitor visitor(&m_vertices[0]);
-    return bvh::intersect_any_two_levels(&m_bvh_nodes[0], &m_instance_transforms[0], &m_instance_bvh_roots[0], r, hit, visitor);
+    return bvh::intersect_any_two_levels(&m_bvh_nodes[0], &m_instance_inv_xfm[0], &m_instance_bvh_roots[0], r, hit, visitor);
 }
 
 } // namespace hop

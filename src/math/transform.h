@@ -35,31 +35,14 @@ public:
 
 };
 
-template <typename T>
-class InvTransform
-{
-public:
-    const Transform<T>& ref;
-    InvTransform(const Transform<T>& t) : ref(t) { }
-};
-
 typedef Transform<float> Transformf;
-typedef InvTransform<float> InvTransformf;
 typedef Transform<double> Transformd;
-typedef InvTransform<double> InvTransformd;
 typedef Transform<Real> Transformr;
-typedef InvTransform<Real> InvTransformr;
 
 template <typename T>
-inline InvTransform<T> inverse(const Transform<T>& t)
+inline const Transform<T> inverse(const Transform<T>& t)
 {
-    return InvTransform<T>(t);
-}
-
-template <typename T>
-inline const Transform<T>& inverse(const InvTransform<T>& t)
-{
-    return t.ref;
+    return Transform<T>(t.inv, t.m);
 }
 
 template <typename T>
@@ -69,21 +52,9 @@ inline Vec3<T> transform_point(const Transform<T>& t, const Vec3<T>& p)
 }
 
 template <typename T>
-inline Vec3<T> transform_point(const InvTransform<T>& t, const Vec3<T>& p)
-{
-    return mul_point(t.ref.inv, p);
-}
-
-template <typename T>
 inline Vec3<T> transform_vector(const Transform<T>& t, const Vec3<T>& v)
 {
     return mul_vec(t.m, v);
-}
-
-template <typename T>
-inline Vec3<T> transform_vector(const InvTransform<T>& t, const Vec3<T>& v)
-{
-    return mul_vec(t.ref.inv, v);
 }
 
 template <typename T>
@@ -93,27 +64,7 @@ inline Vec3<T> transform_normal(const Transform<T>& t, const Vec3<T>& n)
 }
 
 template <typename T>
-inline Vec3<T> transform_normal(const InvTransform<T>& t, const Vec3<T>& n)
-{
-    return mul_vec(transpose(t.ref.m), n);
-}
-
-template <typename T>
 inline BBox<T> transform_bbox(const Transform<T>& t, const BBox<T>& b)
-{
-    BBox<T> res(transform_point(t, b.pmin));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmax.x, b.pmin.y, b.pmin.z)));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmin.x, b.pmax.y, b.pmin.z)));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmin.x, b.pmin.y, b.pmax.z)));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmin.x, b.pmax.y, b.pmax.z)));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmax.x, b.pmax.y, b.pmin.z)));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmax.x, b.pmin.y, b.pmax.z)));
-    res = merge(res, transform_point(t, Vec3<T>(b.pmax.x, b.pmax.y, b.pmax.z)));
-    return res;
-}
-
-template <typename T>
-inline BBox<T> transform_bbox(const InvTransform<T>& t, const BBox<T>& b)
 {
     BBox<T> res(transform_point(t, b.pmin));
     res = merge(res, transform_point(t, Vec3<T>(b.pmax.x, b.pmin.y, b.pmin.z)));
@@ -274,13 +225,6 @@ template <typename T>
 std::ostream& operator<<(std::ostream& os, const Transform<T>& t)
 {
     os << "[" << t.m << t.inv << "]";
-    return os;
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const InvTransform<T>& t)
-{
-    os << "[" << t.ref.m << t.ref.inv << "]";
     return os;
 }
 

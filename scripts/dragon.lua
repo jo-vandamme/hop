@@ -22,7 +22,7 @@ function init()
         frame_width = options.frame_width,
         frame_height = options.frame_height,
         fov = 60,
-        lens_radius = 3.0,
+        lens_radius = 2.0,
         focal_distance = 190
     }
     camera = Camera.make_perspective(camera_desc)

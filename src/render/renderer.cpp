@@ -163,7 +163,10 @@ Real Renderer::set_focus_point(const Vec2r& point)
 
         auto cam = std::dynamic_pointer_cast<ProjectiveCamera>(m_camera);
         if (cam)
+        {
             cam->set_focal_distance(dist);
+            reset();
+        }
     }
     return dist;
 }

@@ -7,6 +7,7 @@
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
 #include "geometry/surface_interaction.h"
+#include "material/material.h"
 #include "accel/bvh_node.h"
 #include "math/bbox.h"
 #include "math/vec2.h"
@@ -47,12 +48,12 @@ private:
 private:
     std::vector<ShapeID> m_instance_ids;
     std::vector<bvh::Node> m_bvh_nodes;
-    std::vector<Transformr> m_instance_transforms;
+    std::vector<Transformr> m_instance_inv_xfm;
     std::vector<uint32> m_instance_bvh_roots;
     std::vector<Vec3r> m_vertices;
     std::vector<Vec3r> m_normals;
     std::vector<Vec2r> m_uvs;
-    std::vector<uint32> m_materials;
+    std::vector<MaterialID> m_materials;
     bool m_dirty;
     BBoxr m_bbox;
 };

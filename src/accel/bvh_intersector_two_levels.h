@@ -44,7 +44,7 @@ bool intersect_triangles_simd(const PackedRay& ray, const PackedTriangles& tris,
 #endif
 
 template <typename Visitor>
-bool intersect_two_levels(const Node* nodes, const Transformr* transforms, const uint32* bvh_roots,
+bool intersect_two_levels(const Node* nodes, const Transformr* inv_transforms, const uint32* bvh_roots,
                           const Ray& r, HitInfo* hit, Visitor& visitor)
 {
     constexpr uint32 BVH_MAX_STACK_SIZE = 32;
@@ -171,7 +171,7 @@ bool intersect_two_levels(const Node* nodes, const Transformr* transforms, const
 
                 // TODO use sse for the transformation
                 // Transform the ray
-                const InvTransformr& xfm = inverse(transforms[instance_idx]);
+                const Transformr& xfm = inv_transforms[instance_idx];
                 ray.org = transform_point(xfm, ray.org);
                 ray.dir = transform_vector(xfm, ray.dir);
                 inv_dir = rcp(ray.dir);
@@ -259,7 +259,7 @@ bool intersect_two_levels(const Node* nodes, const Transformr* transforms, const
 }
 
 template <typename Visitor>
-bool intersect_any_two_levels(const Node* nodes, const Transformr* transforms, const uint32* bvh_roots,
+bool intersect_any_two_levels(const Node* nodes, const Transformr* inv_transforms, const uint32* bvh_roots,
                               const Ray& r, HitInfo* hit, Visitor& visitor)
 {
     constexpr uint32 BVH_MAX_STACK_SIZE = 32;
@@ -385,7 +385,7 @@ bool intersect_any_two_levels(const Node* nodes, const Transformr* transforms, c
 
                 // TODO use sse for the transformation
                 // Transform the ray
-                const InvTransformr& xfm = inverse(transforms[instance_idx]);
+                const Transformr& xfm = inv_transforms[instance_idx];
                 ray.org = transform_point(xfm, ray.org);
                 ray.dir = transform_vector(xfm, ray.dir);
                 inv_dir = rcp(ray.dir);
