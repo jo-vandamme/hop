@@ -1,6 +1,5 @@
 #pragma once
 
-#include "hop.h"
 #include "types.h"
 
 namespace hop {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "hop.h"
 #include "types.h"
 #include "math/math.h"
 #include <ostream>

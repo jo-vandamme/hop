@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hop.h"
+#include "types.h"
 #include "math/math.h"
 #include "math/vec3.h"
 #include "geometry/ray.h"
@@ -12,7 +13,6 @@ inline bool intersect_triangle(const Vec3r& v0, const Vec3r& e1, const Vec3r& e2
 {
     const Vec3r s1 = cross(ray.dir, e2);
     const Real det = dot(s1, e1);
-    //if (almost_equal(det, Real(0)))
     if (det > -RAY_EPSILON && det < RAY_EPSILON)
         return false;
 

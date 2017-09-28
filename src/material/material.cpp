@@ -13,6 +13,7 @@ Material::Material(const std::string& name)
 
 Bsdf* Material::get_bsdf(const SurfaceInteraction& isect) const
 {
+    (void)isect;
     return nullptr;
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hop.h"
+#include "types.h"
 #include "math/vec3.h"
 
 namespace hop { namespace sample {

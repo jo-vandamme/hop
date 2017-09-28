@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hop.h"
+#include "types.h"
 #include "spectrum/spectrum.h"
 
 #include <memory>

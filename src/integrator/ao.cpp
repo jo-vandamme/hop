@@ -1,4 +1,5 @@
 #include "hop.h"
+#include "types.h"
 #include "integrator/ao.h"
 #include "math/math.h"
 #include "math/vec3.h"

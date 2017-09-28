@@ -45,6 +45,12 @@ Real RGBSpectrum::get_intensity() const
     return dot(m_color, w);
 }
 
+uint32 RGBSpectrum::to_uint32() const
+{
+    Vec3r col = clamp(0.0, 1.0).m_color * 255.0;
+    return (uint8(col.z) << 16) | (uint8(col.y) << 8) | uint8(col.x);
+}
+
 RGBSpectrum RGBSpectrum::operator+(const RGBSpectrum& c) const
 {
     return RGBSpectrum(m_color + c.m_color);

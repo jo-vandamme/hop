@@ -1,13 +1,13 @@
 #pragma once
 
-#include "math/vec3.h"
-#include "geometry/ray.h"
 #include "geometry/world.h"
 #include "spectrum/spectrum.h"
 
 #include <memory>
 
 namespace hop {
+
+class Ray;
 
 class Integrator
 {

@@ -1,4 +1,3 @@
-#include "hop.h"
 #include "obj.h"
 #include "types.h"
 #include "util/string_util.h"

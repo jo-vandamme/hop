@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hop.h"
+#include "types.h"
 #include "math/vec3.h"
 
 namespace hop {
@@ -18,6 +18,8 @@ public:
     Real get_intensity() const;
 
     Vec3r get_color() const { return m_color; }
+
+    uint32 to_uint32() const;
 
     RGBSpectrum operator+(const RGBSpectrum& c) const;
     RGBSpectrum operator-(const RGBSpectrum& c) const;

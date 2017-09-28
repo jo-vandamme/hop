@@ -1,10 +1,10 @@
 #include "camera/trackball.h"
 #include "camera/camera.h"
 #include "render/renderer.h"
-#include "util/log.h"
 #include "math/math.h"
 #include "math/vec3.h"
 #include "math/transform.h"
+#include "util/log.h"
 
 #include <memory>
 

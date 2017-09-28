@@ -1,8 +1,6 @@
 #pragma once
 
 #include "integrator/integrator.h"
-#include "geometry/ray.h"
-#include "sampler/sampling.h"
 
 namespace hop {
 

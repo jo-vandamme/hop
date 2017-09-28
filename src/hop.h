@@ -2,9 +2,6 @@
 
 #define RAND_HARDWARE
 
-#undef DEBUG_BBOX
-#undef DEBUG_TRIS
-
 #define BBOX_SIMD_ISECT
 
 #define MIN_PRIMS_PER_LEAF 8
