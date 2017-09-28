@@ -14,35 +14,6 @@
 
 namespace hop { namespace bvh {
 
-#ifdef TRIS_SIMD_ISECT
-
-struct ALIGN(32) PackedTriangles
-{
-    __m256d e1[3];
-    __m256d e2[3];
-    __m256d v0[3];
-    __m256d inactive_mask;
-};
-
-struct PackedHitInfo
-{
-    double t = std::numeric_limits<float>::infinity();
-    int idx;
-    double b1, b2;
-};
-
-struct ALIGN(32) PackedRay
-{
-    __m256d org[3];
-    __m256d dir[3];
-    __m256d tmin;
-    __m256d tmax;
-};
-
-bool intersect_triangles_simd(const PackedRay& ray, const PackedTriangles& tris, PackedHitInfo& hit);
-
-#endif
-
 template <typename Visitor>
 bool intersect_two_levels(const Node* nodes, const Transformr* inv_transforms, const uint32* bvh_roots,
                           const Ray& r, HitInfo* hit, Visitor& visitor)
@@ -55,18 +26,6 @@ bool intersect_two_levels(const Node* nodes, const Transformr* inv_transforms, c
     const Vec3r orig_ray_dir = ray.dir;
     Vec3r inv_dir = rcp(ray.dir);
     Vec3i dir_is_neg = { inv_dir.x < 0, inv_dir.y < 0, inv_dir.z < 0 };
-
-#ifdef TRIS_SIMD_ISECT
-    PackedRay ALIGN(32) pray;
-    pray.org[0] = _mm256_set1_pd(ray.org.x);
-    pray.org[1] = _mm256_set1_pd(ray.org.y);
-    pray.org[2] = _mm256_set1_pd(ray.org.z);
-    pray.dir[0] = _mm256_set1_pd(ray.dir.x);
-    pray.dir[1] = _mm256_set1_pd(ray.dir.y);
-    pray.dir[2] = _mm256_set1_pd(ray.dir.z);
-    pray.tmin   = _mm256_set1_pd(ray.tmin);
-    pray.tmax   = _mm256_set1_pd(ray.tmax);
-#endif
 
     uint32 node_stack[BVH_MAX_STACK_SIZE];
     uint32 node_idx = 0;
@@ -179,16 +138,6 @@ bool intersect_two_levels(const Node* nodes, const Transformr* inv_transforms, c
                 dir_is_neg[1] = inv_dir.y < 0;
                 dir_is_neg[2] = inv_dir.z < 0;
 
-#ifdef TRIS_SIMD_ISECT
-                pray.org[0] = _mm256_set1_pd(ray.org.x);
-                pray.org[1] = _mm256_set1_pd(ray.org.y);
-                pray.org[2] = _mm256_set1_pd(ray.org.z);
-                pray.dir[0] = _mm256_set1_pd(ray.dir.x);
-                pray.dir[1] = _mm256_set1_pd(ray.dir.y);
-                pray.dir[2] = _mm256_set1_pd(ray.dir.z);
-                pray.tmax   = _mm256_set1_pd(ray.tmax);
-#endif
-
 #ifdef BBOX_SIMD_ISECT
                 // Load the ray into SSE registers.
                 org_x = _mm_set1_pd(ray.org.x);
@@ -201,18 +150,11 @@ bool intersect_two_levels(const Node* nodes, const Transformr* inv_transforms, c
 #endif
             }
             // This is a bottom level BVH leaf
-#ifdef TRIS_SIMD_ISECT
-            else if (visitor.intersect(*node_ptr, pray, hit))
-#else
             else if (visitor.intersect(*node_ptr, ray, hit))
-#endif
             {
                 got_hit = true;
                 hit->shape_id = instance_idx;
                 ray.tmax = hit->t;
-#ifdef TRIS_SIMD_ISECT
-                pray.tmax = _mm256_set1_pd(ray.tmax);
-#endif
             }
         }
 
@@ -226,16 +168,6 @@ bool intersect_two_levels(const Node* nodes, const Transformr* inv_transforms, c
             dir_is_neg[1] = inv_dir.y < 0;
             dir_is_neg[2] = inv_dir.z < 0;
             mesh_bvh_stack_start_index = -1;
-
-#ifdef TRIS_SIMD_ISECT
-            pray.org[0] = _mm256_set1_pd(ray.org.x);
-            pray.org[1] = _mm256_set1_pd(ray.org.y);
-            pray.org[2] = _mm256_set1_pd(ray.org.z);
-            pray.dir[0] = _mm256_set1_pd(ray.dir.x);
-            pray.dir[1] = _mm256_set1_pd(ray.dir.y);
-            pray.dir[2] = _mm256_set1_pd(ray.dir.z);
-            pray.tmax   = _mm256_set1_pd(ray.tmax);
-#endif
 
 #ifdef BBOX_SIMD_ISECT
             // Load the ray into SSE registers.
@@ -270,18 +202,6 @@ bool intersect_any_two_levels(const Node* nodes, const Transformr* inv_transform
     const Vec3r orig_ray_dir = ray.dir;
     Vec3r inv_dir = rcp(ray.dir);
     Vec3i dir_is_neg = { inv_dir.x < 0, inv_dir.y < 0, inv_dir.z < 0 };
-
-#ifdef TRIS_SIMD_ISECT
-    PackedRay ALIGN(32) pray;
-    pray.org[0] = _mm256_set1_pd(ray.org.x);
-    pray.org[1] = _mm256_set1_pd(ray.org.y);
-    pray.org[2] = _mm256_set1_pd(ray.org.z);
-    pray.dir[0] = _mm256_set1_pd(ray.dir.x);
-    pray.dir[1] = _mm256_set1_pd(ray.dir.y);
-    pray.dir[2] = _mm256_set1_pd(ray.dir.z);
-    pray.tmin   = _mm256_set1_pd(ray.tmin);
-    pray.tmax   = _mm256_set1_pd(ray.tmax);
-#endif
 
     uint32 node_stack[BVH_MAX_STACK_SIZE];
     uint32 node_idx = 0;
@@ -393,16 +313,6 @@ bool intersect_any_two_levels(const Node* nodes, const Transformr* inv_transform
                 dir_is_neg[1] = inv_dir.y < 0;
                 dir_is_neg[2] = inv_dir.z < 0;
 
-#ifdef TRIS_SIMD_ISECT
-                pray.org[0] = _mm256_set1_pd(ray.org.x);
-                pray.org[1] = _mm256_set1_pd(ray.org.y);
-                pray.org[2] = _mm256_set1_pd(ray.org.z);
-                pray.dir[0] = _mm256_set1_pd(ray.dir.x);
-                pray.dir[1] = _mm256_set1_pd(ray.dir.y);
-                pray.dir[2] = _mm256_set1_pd(ray.dir.z);
-                pray.tmax   = _mm256_set1_pd(ray.tmax);
-#endif
-
 #ifdef BBOX_SIMD_ISECT
                 // Load the ray into SSE registers.
                 org_x = _mm_set1_pd(ray.org.x);
@@ -415,11 +325,7 @@ bool intersect_any_two_levels(const Node* nodes, const Transformr* inv_transform
 #endif
             }
             // This is a bottom level BVH leaf
-#ifdef TRIS_SIMD_ISECT
-            else if (visitor.intersect_any(*node_ptr, pray, hit))
-#else
             else if (visitor.intersect_any(*node_ptr, ray, hit))
-#endif
             {
                 hit->shape_id = instance_idx;
                 ray.tmax = hit->t;
@@ -437,16 +343,6 @@ bool intersect_any_two_levels(const Node* nodes, const Transformr* inv_transform
             dir_is_neg[1] = inv_dir.y < 0;
             dir_is_neg[2] = inv_dir.z < 0;
             mesh_bvh_stack_start_index = -1;
-
-#ifdef TRIS_SIMD_ISECT
-            pray.org[0] = _mm256_set1_pd(ray.org.x);
-            pray.org[1] = _mm256_set1_pd(ray.org.y);
-            pray.org[2] = _mm256_set1_pd(ray.org.z);
-            pray.dir[0] = _mm256_set1_pd(ray.dir.x);
-            pray.dir[1] = _mm256_set1_pd(ray.dir.y);
-            pray.dir[2] = _mm256_set1_pd(ray.dir.z);
-            pray.tmax   = _mm256_set1_pd(ray.tmax);
-#endif
 
 #ifdef BBOX_SIMD_ISECT
             // Load the ray into SSE registers.

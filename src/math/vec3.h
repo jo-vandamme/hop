@@ -315,6 +315,22 @@ inline Vec3<T> refract(const Vec3<T>& dir, const Vec3<T>& normal, const T n1_ove
 }
 
 template <typename T>
+inline Vec3<T> permute(const Vec3<T>& v, int x, int y, int z)
+{
+    return Vec3<T>(v[x], v[y], v[z]);
+}
+
+template <typename T>
+inline void coordinate_system(const Vec3<T>& v1, const Vec3<T>* v2, const Vec3<T>* v3)
+{
+    if (abs(v1.x) > abs(v1.y))
+        *v2 = Vec3<T>(-v1.z, 0, v1.x) * rcp(sqrt(v1.x * v1.x + v1.z * v1.z));
+    else
+        *v2 = Vec3<T>(0, v1.z, -v1.y) * rcp(sqrt(v1.y * v1.y + v1.z * v1.z));
+    *v3 = cross(v1, *v2);
+}
+
+template <typename T>
 std::ostream& operator<<(std::ostream& os, const Vec3<T>& v)
 {
     os << "(" << v.x << " " << v.y << " " << v.z << ")";

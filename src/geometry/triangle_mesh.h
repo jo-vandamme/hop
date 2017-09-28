@@ -30,12 +30,15 @@ public:
     void get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info) override;
 
     const std::vector<Triangle>& get_triangles() const { return m_triangles; }
+    const std::vector<BBoxr>& get_triangles_bboxes() const { return m_bboxes; }
 
     void clear_triangles() { m_triangles.clear(); }
+    void clear_bboxes() { m_bboxes.clear(); }
 
 private:
     std::string m_name;
     std::vector<Triangle> m_triangles;
+    std::vector<BBoxr> m_bboxes;
     BBoxr m_bbox;
     Vec3r m_centroid;
 };

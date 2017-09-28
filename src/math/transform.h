@@ -33,11 +33,24 @@ public:
         return Transform(m * t.inv, t.m * inv);
     }
 
+    bool swaps_handedness() const
+    {
+        T det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+                m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+                m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+        return det < 0;
+    }
 };
 
 typedef Transform<float> Transformf;
 typedef Transform<double> Transformd;
 typedef Transform<Real> Transformr;
+
+template <typename T>
+inline bool swaps_handedness(const Transform<T>& t)
+{
+    return t.swaps_handedness();
+}
 
 template <typename T>
 inline const Transform<T> inverse(const Transform<T>& t)

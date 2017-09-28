@@ -98,20 +98,6 @@ void World::preprocess()
                          << total << " instanced triangles";
 }
 
-class InstAccessor
-{
-public:
-    static const BBoxr& get_bbox(ShapeInstance* ptr) { return ptr->get_bbox(); }
-    static const Vec3r& get_centroid(ShapeInstance* ptr) { return ptr->get_centroid(); }
-};
-
-class TriAccessor
-{
-public:
-    static const BBoxr& get_bbox(const Triangle& tri) { return tri.get_bbox(); }
-    static const Vec3r& get_centroid(const Triangle& tri) { return tri.get_centroid(); }
-};
-
 // Partition mesh instances so that each instance ends up in its own BVH leaf.
 void World::partition_instances()
 {
@@ -140,9 +126,18 @@ void World::partition_instances()
         }
     };
 
+    class InstAccessor
+    {
+    public:
+        const BBoxr& get_bbox(ShapeInstance* ptr) const { return ptr->get_bbox(); }
+        const Vec3r& get_centroid(ShapeInstance* ptr) const { return ptr->get_centroid(); }
+    };
+
+    InstAccessor accessor;
+
     m_bvh_nodes = bvh::Builder<ShapeInstance*, InstAccessor,
         bvh::SAHStrategy<ShapeInstance*, InstAccessor>>::build(
-            instances_vec, 1, inst_leaf_cb);
+            &accessor, instances_vec, 1, inst_leaf_cb);
 }
 
 // Partition each mesh into its own BVH. Update all instances to point
@@ -181,14 +176,17 @@ void World::partition_meshes()
 
         uint32 num_bvh2_leaves = 0;
 
-        auto tri_leaf_cb = [&](bvh::Node* leaf, const std::vector<Triangle>& triangles)
+        auto tri_leaf_cb = [&](bvh::Node* leaf, const std::vector<size_t>& tri_indices)
+            //const std::vector<Triangle>& triangles)
         {
-            leaf->set_primitives(triangle_offset, triangles.size());
+            leaf->set_primitives(triangle_offset, tri_indices.size());
             ++num_bvh2_leaves;
 
             // Copy triangles to flat array
-            for (auto& tri : triangles)
+            for (auto i : tri_indices)
             {
+                const Triangle& tri = mesh->get_triangles()[i];
+
                 m_vertices[vertex_offset + 0] = tri.vertices[0];
                 m_vertices[vertex_offset + 1] = tri.vertices[1];
                 m_vertices[vertex_offset + 2] = tri.vertices[2];
@@ -208,11 +206,29 @@ void World::partition_meshes()
             }
         };
 
-        auto bvh_nodes = bvh::Builder<Triangle, TriAccessor,
-             bvh::SAHStrategy<Triangle, TriAccessor>>::build(
-                mesh->get_triangles(), MIN_PRIMS_PER_LEAF, tri_leaf_cb);
+        class TriAccessor
+        {
+        public:
+            TriAccessor(const TriangleMesh* mesh) : bboxes(mesh->get_triangles_bboxes()) { }
 
-        //mesh->clear_triangles();
+            const BBoxr& get_bbox(size_t i) const { return bboxes[i]; }
+            Vec3r get_centroid(size_t i) const { return bboxes[i].get_centroid(); }
+
+            const std::vector<BBoxr>& bboxes;
+        };
+
+        TriAccessor accessor(mesh);
+        std::vector<size_t> tri_indices;
+        size_t num_tris = mesh->get_triangles().size();
+        for (size_t i = 0; i < num_tris; ++i)
+            tri_indices.push_back(i);
+
+        auto bvh_nodes = bvh::Builder<size_t, TriAccessor,
+             bvh::SAHStrategy<size_t, TriAccessor>>::build(
+                &accessor, tri_indices, MIN_PRIMS_PER_LEAF, tri_leaf_cb);
+
+        mesh->clear_bboxes();
+        mesh->clear_triangles();
 
         // For all instances that point to this mesh, set their bvh_root to this mesh
         const std::vector<uint32>& instances = kv.second;

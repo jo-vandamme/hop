@@ -157,17 +157,27 @@ ShapeID load(const char* file)
                 size_t* indices = &indices_list[i][0];
                 Triangle tri;
 
+                bool uvs_null = true;
+                bool normals_null = true;
                 for (size_t j = 0; j < 3; ++j)
                 {
                     size_t index = indices[j];
                     tri.vertices[j] = vertices[face_vert_idx[index]];
                     if (has_normals)
+                    {
                         tri.normals[j] = normalize(normals[face_norm_idx[index]]);
+                        if (tri.normals[j].x != 0.0 || tri.normals[j].y != 0.0 || tri.normals[j].z != 0.0)
+                            normals_null = false;
+                    }
                     if (has_uvs)
+                    {
                         tri.uvs[j] = uvs[face_uv_idx[index]];
+                        if (tri.uvs[j].x != 0.0 || tri.uvs[j].y != 0.0)
+                            uvs_null = false;
+                    }
                 }
 
-                if (!has_normals)
+                if (!has_normals || normals_null)
                 {
                     const Vec3r e01 = tri.vertices[1] - tri.vertices[0];
                     const Vec3r e02 = tri.vertices[2] - tri.vertices[0];
@@ -175,15 +185,15 @@ ShapeID load(const char* file)
                     tri.normals[0] = tri.normals[1] = tri.normals[2] = normal;
                 }
 
-                if (!has_uvs)
+                if (!has_uvs || uvs_null)
                 {
                     tri.uvs[0] = Vec2r(0, 0);
-                    tri.uvs[1] = Vec2r(0, 1);
-                    tri.uvs[2] = Vec2r(1, 0);
+                    tri.uvs[1] = Vec2r(1, 0);
+                    tri.uvs[2] = Vec2r(1, 1);
                 }
 
-                tri.bbox = BBoxr(tri.vertices[0], tri.vertices[1], tri.vertices[2]);
-                tri.centroid = tri.bbox.get_centroid();
+                //tri.bbox = BBoxr(tri.vertices[0], tri.vertices[1], tri.vertices[2]);
+                //tri.centroid = tri.bbox.get_centroid();
                 tri.material_id = material_id;
 
                 triangles.push_back(std::move(tri));

@@ -17,7 +17,11 @@ TriangleMesh::TriangleMesh(const std::string& name,
 {
     m_bbox = BBoxr();
     for (auto& tri : m_triangles)
-        m_bbox.merge(tri.get_bbox());
+    {
+        const BBoxr bbox = tri.get_bbox();
+        m_bboxes.push_back(bbox);
+        m_bbox.merge(bbox);
+    }
     m_centroid = m_bbox.get_centroid();
 }
 

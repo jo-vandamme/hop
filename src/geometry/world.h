@@ -2,6 +2,7 @@
 
 #include "hop.h"
 #include "geometry/shape.h"
+#include "geometry/triangle_mesh.h"
 #include "geometry/shape_instance.h"
 #include "geometry/shape_manager.h"
 #include "geometry/ray.h"
