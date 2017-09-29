@@ -5,8 +5,9 @@
 #include "geometry/triangle_mesh.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
-#include "geometry/surface_interaction.h"
+#include "geometry/interaction.h"
 #include "geometry/intersect_triangle.h"
+#include "material/material_manager.h"
 #include "math/math.h"
 #include "math/bbox.h"
 #include "math/vec3.h"
@@ -31,7 +32,7 @@ void World::add_shape(ShapeID id)
         id = ShapeManager::create<ShapeInstance>(id, Transformr());
 
     ShapeInstance* instance = ShapeManager::get<ShapeInstance>(id);
-    m_instance_ids.push_back(id);
+    m_instance_ptrs.push_back(instance);
 
     m_dirty = true;
 
@@ -45,36 +46,52 @@ BBoxr World::get_bbox()
     if (m_dirty)
     {
         m_bbox = BBoxr();
-        for (auto id : m_instance_ids)
-            m_bbox.merge(ShapeManager::get<Shape>(id)->get_bbox());
+        for (auto inst : m_instance_ptrs)
+            m_bbox.merge(inst->get_bbox());
         m_dirty = false;
     }
     return m_bbox;
 }
 
-void World::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* info)
+void World::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* interaction)
 {
-    Real b0 = 1 - hit.b1 - hit.b2;
+    const Vec3r& p0 = m_vertices[hit.primitive_id * 3 + 0];
+    const Vec3r& p1 = m_vertices[hit.primitive_id * 3 + 1];
+    const Vec3r& p2 = m_vertices[hit.primitive_id * 3 + 2];
 
-    info->position = b0     * m_vertices[hit.primitive_id * 3 + 0] +
-                     hit.b1 * m_vertices[hit.primitive_id * 3 + 1] +
-                     hit.b2 * m_vertices[hit.primitive_id * 3 + 2];
+    const Vec2r& uv0 = Vec2r(m_uvs[hit.primitive_id * 3 + 0]);
+    const Vec2r& uv1 = Vec2r(m_uvs[hit.primitive_id * 3 + 1]);
+    const Vec2r& uv2 = Vec2r(m_uvs[hit.primitive_id * 3 + 2]);
 
-    info->normal = b0     * m_normals[hit.primitive_id * 3 + 0] +
-                   hit.b1 * m_normals[hit.primitive_id * 3 + 1] +
-                   hit.b2 * m_normals[hit.primitive_id * 3 + 2];
+    const Vec3r& n0 = Vec3r(m_normals[hit.primitive_id * 3 + 0]);
+    const Vec3r& n1 = Vec3r(m_normals[hit.primitive_id * 3 + 1]);
+    const Vec3r& n2 = Vec3r(m_normals[hit.primitive_id * 3 + 2]);
 
-    info->uv = b0     * m_uvs[hit.primitive_id * 3 + 0] +
-               hit.b1 * m_uvs[hit.primitive_id * 3 + 1] +
-               hit.b2 * m_uvs[hit.primitive_id * 3 + 2];
-
-    info->t = hit.t;
-    info->shape_id = hit.shape_id;
-    info->material_id = m_materials[hit.primitive_id];
+    Real b0 = Real(1.0) - hit.b1 - hit.b2;
+    Vec2r uv  = b0 * uv0 + hit.b1 * uv1 + hit.b2 * uv2;
+    Vec3r pos = b0 * p0  + hit.b1 * p1  + hit.b2 * p2;
+    Vec3r n   = b0 * n0  + hit.b1 * n1  + hit.b2 * n2;
 
     const Transformr xfm = inverse(m_instance_inv_xfm[hit.shape_id]);
-    info->position = transform_point(xfm, info->position);
-    info->normal = transform_normal(xfm, info->normal);
+    pos = transform_point(xfm, pos);
+    n = transform_normal(xfm, n);
+    const Vec3r wo = transform_vector(xfm, -hit.ray_dir);
+
+    /*
+    Vec3r dpdu, dpdv;
+    const Vec2r duv02 = uv0 - uv2;
+    const Vec2r duv12 = uv1 - uv2;
+    const Vec3r dp02 = p0 - p2;
+    const Vec3r dp12 = p1 - p2;
+    const Real inv_det = rcp(duv02.x * duv12.y - duv02.y * duv12.x);
+    dpdu = ( duv12.y * dp02 - duv02.y * dp12) * inv_det;
+    dpdv = (-duv12.x * dp02 + duv02.x * dp12) * inv_det;
+    dpdu = transform_vector(xfm, dpdu);
+    dpdv = transform_vector(xfm, dpdv);
+    */
+
+    *interaction = SurfaceInteraction(pos, Vec3f(n), Vec2f(uv), Vec3f(wo),
+            m_instance_ptrs[hit.shape_id], m_materials[hit.primitive_id]);
 }
 
 void World::preprocess()
@@ -90,35 +107,31 @@ void World::preprocess()
     Log("world") << INFO << "preprocessed scene in " << stop_watch.get_elapsed_time_ms() << " ms";
 
     uint64 total = 0;
-    for (auto id : m_instance_ids)
-        total += ShapeManager::get<Shape>(id)->get_num_primitives();
+    for (auto inst : m_instance_ptrs)
+        total += inst->get_num_primitives();
 
     Log("world") << INFO << m_vertices.size() / 3 << " unique triangles, "
-                         << m_instance_ids.size() << " instances, "
+                         << m_instance_ptrs.size() << " instances, "
                          << total << " instanced triangles";
 }
 
 // Partition mesh instances so that each instance ends up in its own BVH leaf.
 void World::partition_instances()
 {
-    std::vector<ShapeInstance*> instances_vec;
-    for (auto id : m_instance_ids)
-        instances_vec.push_back(ShapeManager::get<ShapeInstance>(id));
+    Log("world") << INFO << "building scene BVH tree (" << m_instance_ptrs.size() << " instanced meshes)";
 
-    Log("world") << INFO << "building scene BVH tree (" << instances_vec.size() << " instanced meshes)";
+    m_instance_bvh_roots.resize(m_instance_ptrs.size());
+    m_instance_inv_xfm.resize(m_instance_ptrs.size());
 
-    m_instance_bvh_roots.resize(instances_vec.size());
-    m_instance_inv_xfm.resize(instances_vec.size());
-
-    for (size_t i = 0; i < instances_vec.size(); ++i)
-        m_instance_inv_xfm[i] = inverse(instances_vec[i]->get_transform());
+    for (size_t i = 0; i < m_instance_ptrs.size(); ++i)
+        m_instance_inv_xfm[i] = inverse(m_instance_ptrs[i]->get_transform());
 
     auto inst_leaf_cb = [&](bvh::Node* leaf, const std::vector<ShapeInstance*>& instances)
     {
         ShapeInstance* inst = instances[0];
-        for (size_t i = 0; i < instances_vec.size(); ++i)
+        for (size_t i = 0; i < m_instance_ptrs.size(); ++i)
         {
-            if (instances_vec[i] == inst)
+            if (m_instance_ptrs[i] == inst)
             {
                 leaf->set_instance_index(i);
                 break;
@@ -137,7 +150,7 @@ void World::partition_instances()
 
     m_bvh_nodes = bvh::Builder<ShapeInstance*, InstAccessor,
         bvh::SAHStrategy<ShapeInstance*, InstAccessor>>::build(
-            &accessor, instances_vec, 1, inst_leaf_cb);
+            &accessor, m_instance_ptrs, 1, inst_leaf_cb);
 }
 
 // Partition each mesh into its own BVH. Update all instances to point
@@ -146,9 +159,9 @@ void World::partition_meshes()
 {
     // Generate a map of meshes to lists of instance indices
     std::map<TriangleMesh*, std::vector<uint32>> mesh_to_instance_map;
-    for (size_t i = 0; i < m_instance_ids.size(); ++i)
+    for (size_t i = 0; i < m_instance_ptrs.size(); ++i)
     {
-        ShapeInstance* inst = ShapeManager::get<ShapeInstance>(m_instance_ids[i]);
+        ShapeInstance* inst = m_instance_ptrs[i];
         if (inst->get_type() == TRIANGLE_MESH)
             mesh_to_instance_map[reinterpret_cast<TriangleMesh*>(inst->get_shape())].push_back(i);
     }
@@ -199,7 +212,7 @@ void World::partition_meshes()
                 m_uvs[vertex_offset + 1] = tri.uvs[1];
                 m_uvs[vertex_offset + 2] = tri.uvs[2];
 
-                m_materials[triangle_offset] = tri.material_id;
+                m_materials[triangle_offset] = MaterialManager::get(tri.material_id);
 
                 vertex_offset += 3;
                 ++triangle_offset;
@@ -272,6 +285,7 @@ inline bool Visitor::intersect(const bvh::Node& node, const Ray& ray, HitInfo* h
         {
             got_hit = true;
             hit->primitive_id = vert_index / 3;
+            hit->ray_dir = ray.dir;
         }
     }
     return got_hit;
@@ -291,10 +305,7 @@ inline bool Visitor::intersect_any(const bvh::Node& node, const Ray& ray, HitInf
         const Vec3r e1 = v1 - v0;
         const Vec3r e2 = v2 - v0;
         if (intersect_triangle(v0, e1, e2, ray, hit))
-        {
-            hit->primitive_id = vert_index / 3;
             return true;
-        }
     }
     return false;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 #include "lua/lua.h"
 #include "math/vec3.h"
 #include "math/bbox.h"
@@ -27,9 +28,9 @@ public:
         lua_pushboolean(L, value);
     }
 
-    void push_double(double value)
+    void push_real(Real value)
     {
-        lua_pushnumber(L, value);
+        lua_pushnumber(L, (double)value);
     }
 
     void push_string(const char* s)
@@ -106,9 +107,9 @@ public:
         return lua_toboolean(L, i) == 1;
     }
 
-    double get_double(int i)
+    Real get_real(int i)
     {
-        return luaL_checknumber(L, i);
+        return (Real)luaL_checknumber(L, i);
     }
 
     const char* get_string(int i)

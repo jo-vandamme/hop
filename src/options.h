@@ -15,9 +15,9 @@ public:
     uint32 preview_spp;
     uint32 adaptive_spp;
     uint32 firefly_spp;
-    Real adaptive_threshold;
-    Real adaptive_exponent;
-    Real firefly_threshold;
+    float adaptive_threshold;
+    float adaptive_exponent;
+    float firefly_threshold;
     ToneMapType tonemap;
     bool preview;
 };

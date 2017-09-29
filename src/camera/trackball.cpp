@@ -82,7 +82,7 @@ void TrackBall::on_motion(double x, double y)
         Vec3r forward = normalize(m_eye - m_target);
         Vec3r right = normalize(cross(forward, m_up));
         m_up = normalize(cross(right, forward));
-        Vec3r diff = right * (x - m_last_pos.x) + m_up * (y - m_last_pos.y);
+        Vec3r diff = right * ((Real)x - m_last_pos.x) + m_up * ((Real)y - m_last_pos.y);
         m_eye = m_eye + diff * m_motion_sensitivity;
         m_dirty = true;
     }
@@ -90,7 +90,7 @@ void TrackBall::on_motion(double x, double y)
     {
         Vec3r forward = normalize(m_eye - m_target);
         Vec3r right = normalize(cross(forward, m_up));
-        Vec3r diff = right * (x - m_last_pos.x) + m_up * (y - m_last_pos.y);
+        Vec3r diff = right * ((Real)x - m_last_pos.x) + m_up * ((Real)y - m_last_pos.y);
         m_eye    = m_eye    + diff * m_motion_sensitivity;
         m_target = m_target + diff * m_motion_sensitivity;
         m_dirty = true;

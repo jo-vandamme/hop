@@ -66,8 +66,8 @@ ShapeID load(const char* file)
     std::vector<std::string> tokens(20);
 
     std::vector<Vec3r> vertices;
-    std::vector<Vec3r> normals;
-    std::vector<Vec2r> uvs;
+    std::vector<Vec3f> normals;
+    std::vector<Vec2f> uvs;
     std::vector<Triangle> triangles;
 
     MaterialID material_id = 0;
@@ -103,12 +103,12 @@ ShapeID load(const char* file)
         else if (keyword == "vt")
         {
             auto f = parse_floats(tokens);
-            uvs.push_back(Vec2r(f[0], f[1]));
+            uvs.push_back(Vec2f(f[0], f[1]));
         }
         else if (keyword == "vn")
         {
             auto f = parse_floats(tokens);
-            normals.push_back(Vec3r(f[0], f[1], f[2]));
+            normals.push_back(Vec3f(f[0], f[1], f[2]));
         }
         else if (keyword == "f")
         {
@@ -165,13 +165,13 @@ ShapeID load(const char* file)
                     if (has_normals)
                     {
                         tri.normals[j] = normalize(normals[face_norm_idx[index]]);
-                        if (tri.normals[j].x != 0.0 || tri.normals[j].y != 0.0 || tri.normals[j].z != 0.0)
+                        if (tri.normals[j].x != 0.0f || tri.normals[j].y != 0.0f || tri.normals[j].z != 0.0f)
                             normals_null = false;
                     }
                     if (has_uvs)
                     {
                         tri.uvs[j] = uvs[face_uv_idx[index]];
-                        if (tri.uvs[j].x != 0.0 || tri.uvs[j].y != 0.0)
+                        if (tri.uvs[j].x != 0.0f || tri.uvs[j].y != 0.0f)
                             uvs_null = false;
                     }
                 }
@@ -180,15 +180,15 @@ ShapeID load(const char* file)
                 {
                     const Vec3r e01 = tri.vertices[1] - tri.vertices[0];
                     const Vec3r e02 = tri.vertices[2] - tri.vertices[0];
-                    const Vec3r normal = normalize(cross(e01, e02));
+                    const Vec3f normal = Vec3f(normalize(cross(e01, e02)));
                     tri.normals[0] = tri.normals[1] = tri.normals[2] = normal;
                 }
 
                 if (!has_uvs || uvs_null)
                 {
-                    tri.uvs[0] = Vec2r(0, 0);
-                    tri.uvs[1] = Vec2r(1, 0);
-                    tri.uvs[2] = Vec2r(1, 1);
+                    tri.uvs[0] = Vec2f(0, 0);
+                    tri.uvs[1] = Vec2f(1, 0);
+                    tri.uvs[2] = Vec2f(1, 1);
                 }
 
                 //tri.bbox = BBoxr(tri.vertices[0], tri.vertices[1], tri.vertices[2]);

@@ -4,20 +4,20 @@
 
 namespace hop { namespace sample {
 
-Vec3r uniform_sample_hemisphere(Real u1, Real u2)
+Vec3f uniform_sample_hemisphere(float u1, float u2)
 {
-    const Real r = sqrt(1.0 - u1 * u1);
-    const Real phi = 2 * (Real)pi * u2;
-    return Vec3r(cos(phi) * r, sin(phi) * r, u1);
+    const float r = sqrt(1.0f - u1 * u1);
+    const float phi = 2.0f * (float)pi * u2;
+    return Vec3f(cos(phi) * r, sin(phi) * r, u1);
 }
 
-Vec3r cosine_sample_hemisphere(Real u1, Real u2)
+Vec3f cosine_sample_hemisphere(float u1, float u2)
 {
-    const Real r = sqrt(u1);
-    const Real theta = 2.0 * (Real)pi * u2;
-    const Real x = r * cos(theta);
-    const Real y = r * sin(theta);
-    return Vec3r(x, y, sqrt(max(0.0, 1.0 - u1)));
+    const float r = sqrt(u1);
+    const float theta = 2.0f * (float)pi * u2;
+    const float x = r * cos(theta);
+    const float y = r * sin(theta);
+    return Vec3f(x, y, sqrt(max(0.0f, 1.0f - u1)));
 }
 
 } } // namespace hop::sample

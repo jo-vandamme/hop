@@ -9,15 +9,15 @@ class RGBSpectrum
 {
 public:
     RGBSpectrum();
-    RGBSpectrum(Real v);
-    RGBSpectrum(const Vec3r& color);
-    RGBSpectrum(Real r, Real g, Real b);
+    RGBSpectrum(float v);
+    RGBSpectrum(const Vec3f& color);
+    RGBSpectrum(float r, float g, float b);
 
-    RGBSpectrum clamp(Real low = 0.0, Real high = 1.0) const;
+    RGBSpectrum clamp(float low = 0.0, float high = 1.0) const;
     bool is_black() const;
-    Real get_intensity() const;
+    float get_intensity() const;
 
-    Vec3r get_color() const { return m_color; }
+    Vec3f get_color() const { return m_color; }
 
     uint32 to_uint32() const;
 
@@ -26,23 +26,23 @@ public:
     RGBSpectrum operator*(const RGBSpectrum& c) const;
     RGBSpectrum operator/(const RGBSpectrum& c) const;
 
-    RGBSpectrum operator+(Real v) const;
-    RGBSpectrum operator-(Real v) const;
-    RGBSpectrum operator*(Real v) const;
-    RGBSpectrum operator/(Real v) const;
+    RGBSpectrum operator+(float v) const;
+    RGBSpectrum operator-(float v) const;
+    RGBSpectrum operator*(float v) const;
+    RGBSpectrum operator/(float v) const;
 
     RGBSpectrum& operator+=(const RGBSpectrum& c);
     RGBSpectrum& operator-=(const RGBSpectrum& c);
     RGBSpectrum& operator*=(const RGBSpectrum& c);
     RGBSpectrum& operator/=(const RGBSpectrum& c);
 
-    RGBSpectrum& operator+=(Real v);
-    RGBSpectrum& operator-=(Real v);
-    RGBSpectrum& operator*=(Real v);
-    RGBSpectrum& operator/=(Real v);
+    RGBSpectrum& operator+=(float v);
+    RGBSpectrum& operator-=(float v);
+    RGBSpectrum& operator*=(float v);
+    RGBSpectrum& operator/=(float v);
 
 private:
-    Vec3r m_color;
+    Vec3f m_color;
 };
 
 } // namespace hop

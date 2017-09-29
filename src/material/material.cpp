@@ -1,6 +1,6 @@
 #include "material/material.h"
 #include "bsdf/bsdf.h"
-#include "geometry/surface_interaction.h"
+#include "geometry/interaction.h"
 
 #include <string>
 

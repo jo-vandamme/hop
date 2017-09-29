@@ -77,9 +77,9 @@ private:
     DisplayMode m_display_mode;
     uint32 m_num_adaptive_samples;
     uint32 m_num_firefly_samples;
-    Real m_adaptive_exponent;
-    Real m_adaptive_threshold;
-    Real m_firefly_threshold;
+    float m_adaptive_exponent;
+    float m_adaptive_threshold;
+    float m_firefly_threshold;
     ToneMapType m_tonemap;
 };
 

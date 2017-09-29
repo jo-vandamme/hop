@@ -22,12 +22,18 @@ public:
         return instance().create__(material_name);
     }
 
+    static Material* get(MaterialID id)
+    {
+        return instance().get__(id);
+    }
+
     MaterialManager(const MaterialManager&) = delete;
     MaterialManager& operator=(const MaterialManager&) = delete;
 
 private:
     MaterialManager();
     MaterialID create__(const std::string& material_name);
+    Material* get__(MaterialID id);
 
 private:
     std::unordered_map<std::string, MaterialID> m_name_to_id;

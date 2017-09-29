@@ -17,8 +17,8 @@ class Triangle
 {
 public:
     Vec3r vertices[3];
-    Vec3r normals[3];
-    Vec2r uvs[3];
+    Vec3f normals[3];
+    Vec2f uvs[3];
     MaterialID material_id;
 
     Triangle() : material_id(0) { }

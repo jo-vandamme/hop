@@ -16,6 +16,8 @@ namespace hop {
 class Ray;
 class HitInfo;
 class SurfaceInteraction;
+class ShapeInstance;
+class Material;
 
 class World
 {
@@ -35,21 +37,21 @@ public:
     // This will trigger a BBox recalculation when needed
     void set_dirty() { m_dirty = true; }
 
-    bool empty() const { return m_instance_ids.empty(); }
+    bool empty() const { return m_instance_ptrs.empty(); }
 
 private:
     void partition_instances();
     void partition_meshes();
 
 private:
-    std::vector<ShapeID> m_instance_ids;
+    std::vector<ShapeInstance*> m_instance_ptrs;
+    std::vector<Material*> m_materials;
     std::vector<bvh::Node> m_bvh_nodes;
     std::vector<Transformr> m_instance_inv_xfm;
     std::vector<uint32> m_instance_bvh_roots;
     std::vector<Vec3r> m_vertices;
-    std::vector<Vec3r> m_normals;
-    std::vector<Vec2r> m_uvs;
-    std::vector<MaterialID> m_materials;
+    std::vector<Vec3f> m_normals;
+    std::vector<Vec2f> m_uvs;
     bool m_dirty;
     BBoxr m_bbox;
 };

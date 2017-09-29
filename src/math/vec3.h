@@ -16,6 +16,12 @@ public:
     Vec3(const T& v) : x(v), y(v), z(v) { }
     Vec3(const T& x, const T& y, const T& z) : x(x), y(y), z(z) { }
 
+    template <typename U>
+    explicit Vec3(const Vec3<U>& v)
+        : x(T(v.x)), y(T(v.y)), z(T(v.z))
+    {
+    }
+
     const T& operator[](uint8 i) const { return (&x)[i]; }
     T& operator[](uint8 i) { return (&x)[i]; }
 
@@ -320,7 +326,7 @@ inline Vec3<T> permute(const Vec3<T>& v, int x, int y, int z)
 }
 
 template <typename T>
-inline void coordinate_system(const Vec3<T>& v1, const Vec3<T>* v2, const Vec3<T>* v3)
+inline void coordinate_system(const Vec3<T>& v1, Vec3<T>* v2, Vec3<T>* v3)
 {
     if (abs(v1.x) > abs(v1.y))
         *v2 = Vec3<T>(-v1.z, 0, v1.x) * rcp(sqrt(v1.x * v1.x + v1.z * v1.z));

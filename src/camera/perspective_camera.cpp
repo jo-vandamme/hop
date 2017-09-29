@@ -39,7 +39,7 @@ PerspectiveCamera::PerspectiveCamera(
 {
 }
 
-Real PerspectiveCamera::generate_ray(const CameraSample& sample, Ray* ray)
+float PerspectiveCamera::generate_ray(const CameraSample& sample, Ray* ray)
 {
     Vec3r film_point = Vec3r(sample.film_point.x, sample.film_point.y, 0);
     Vec3r cam_point = transform_point(inverse(m_cam2raster), film_point);
@@ -61,7 +61,7 @@ Real PerspectiveCamera::generate_ray(const CameraSample& sample, Ray* ray)
     ray->tmin = m_near;
     ray->tmax = m_far;
 
-    return 1.0;
+    return 1.0f;
 }
 
 } // namespace hop

@@ -16,6 +16,12 @@ public:
     Vec2(const T& v) : x(v), y(v) { }
     Vec2(const T& x, const T& y) : x(x), y(y) { }
 
+    template <typename U>
+    explicit Vec2(const Vec2<U>& v)
+        : x(T(v.x)), y(T(v.y))
+    {
+    }
+
     const T& operator[](uint8 i) const { return (&x)[i]; }
     T& operator[](uint8 i) { return (&x)[i]; }
 

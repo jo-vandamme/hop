@@ -18,7 +18,7 @@ public:
     Camera(const Vec3r& eye, const Vec3r& target, const Vec3r& up);
     virtual ~Camera() { Log("camera") << DEBUG << "camera deleted"; }
 
-    virtual Real generate_ray(const CameraSample& sample, Ray* ray) = 0;
+    virtual float generate_ray(const CameraSample& sample, Ray* ray) = 0;
 
     Transformr get_transform() const { return m_cam2world; }
 

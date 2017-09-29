@@ -1,5 +1,7 @@
 #include <cstdint>
 
+#include "hop.h"
+
 namespace hop {
 
 typedef std::int8_t int8;
@@ -14,7 +16,11 @@ typedef std::uint32_t uint32;
 typedef std::int64_t int64;
 typedef std::uint64_t uint64;
 
-typedef double Real;
+#ifdef REAL_IS_DOUBLE
+    typedef double Real;
+#else
+    typedef float Real;
+#endif
 
 using ShapeID = uint32;
 using MaterialID = uint32;

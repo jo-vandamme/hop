@@ -1,20 +1,16 @@
 #pragma once
 
-#include "geometry/surface_interaction.h"
-
 namespace hop {
 
 class Bxdf;
+class SurfaceInteraction;
 
 class Bsdf
 {
 public:
-    Bsdf(const SurfaceInteraction& intersection_info);
+    Bsdf(const SurfaceInteraction& interaction);
 
     //void add_bxdf(Bxdf* bxdf);
-
-protected:
-    const SurfaceInteraction m_intersection_info;
 };
 
 } // namespace hop

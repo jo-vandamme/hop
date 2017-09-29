@@ -14,6 +14,7 @@ ShapeInstance::ShapeInstance(ShapeID shape_id, const Transformr& xfm)
     m_bbox = transform_bbox(xfm, m_shape->get_bbox());
     m_centroid = m_bbox.get_centroid();
     m_name = m_shape->get_name() + "_inst_" + std::to_string(m_shape->inc_instance_count());
+    m_transform_swaps_handedness = xfm.swaps_handedness();
 }
 
 } // namespace hop

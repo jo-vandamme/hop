@@ -5,6 +5,8 @@ function init()
 
     print("Loading Suzanne scene")
 
+    options.preview_spp = 3
+
     shape = load_obj(get_path() .. "models/suzanne.obj")
 
     world = World.new()

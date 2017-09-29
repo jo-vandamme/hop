@@ -14,19 +14,14 @@ enum ShapeType
     TRIANGLE_MESH
 };
 
-enum ShapeMask
-{
-    VISIBLE = 1 << 0
-};
-
 class Ray;
 class HitInfo;
 
 class Shape
 {
 public:
-    Shape();
-    virtual ~Shape();
+    Shape() : m_num_instances(0) { }
+    virtual ~Shape() { }
 
     virtual const std::string& get_name() const = 0;
     virtual ShapeType get_type() const = 0;
@@ -35,9 +30,6 @@ public:
     virtual const BBoxr& get_bbox() const = 0;
     virtual const Vec3r& get_centroid() const = 0;
 
-    bool is_visible() const;
-    void set_visible(bool visible);
-
     void set_id(ShapeID id) { m_shape_id = id; }
     ShapeID get_id() const { return m_shape_id; }
 
@@ -45,7 +37,6 @@ public:
     uint32 inc_instance_count() { return ++m_num_instances; }
 
 protected:
-    uint8 m_mask;
     ShapeID m_shape_id;
     std::atomic<uint32> m_num_instances;
 };

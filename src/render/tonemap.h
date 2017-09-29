@@ -19,8 +19,7 @@ ToneMapType tonemap_from_string(const char* str);
 inline Vec3f tonemap(ToneMapType type, const Spectrum& color)
 {
     static float inv_gamma = rcp(2.2f);
-    Vec3r col_ = color.get_color();
-    Vec3f col = Vec3f(col_.x, col_.y, col_.z);
+    Vec3f col = color.get_color();
 
     switch (type)
     {

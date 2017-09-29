@@ -56,13 +56,13 @@ static bool safe_getfield_bool(lua_State* L, int idx, const char* field, bool de
     return value;
 }
 
-static double safe_getfield_double(lua_State* L, int idx, const char* field, double default_value)
+static Real safe_getfield_real(lua_State* L, int idx, const char* field, Real default_value)
 {
     Stack s(L);
     lua_getfield(L, idx, field);
-    double value = default_value;
+    Real value = default_value;
     if (!lua_isnil(L, -1))
-        value = s.get_double(-1);
+        value = s.get_real(-1);
     s.pop(1);
     return value;
 }
@@ -101,7 +101,7 @@ static int load_obj(lua_State* L)
 static int vec3_ctor(lua_State* L)
 {
     Stack s(L);
-    Vec3r v(s.get_double(1), s.get_double(2), s.get_double(3));
+    Vec3r v(s.get_real(1), s.get_real(2), s.get_real(3));
     s.push_vec3(v);
     return 1;
 }
@@ -138,7 +138,7 @@ static int vec3_mul(lua_State* L)
 {
     Stack s(L);
     Vec3r v = s.get_vec3(1);
-    double x = s.get_double(2);
+    Real x = s.get_real(2);
     s.push_vec3(v * x);
     return 1;
 }
@@ -147,7 +147,7 @@ static int vec3_length(lua_State* L)
 {
     Stack s(L);
     Vec3r v = s.get_vec3(1);
-    s.push_double(v.length());
+    s.push_real(v.length());
     return 1;
 }
 
@@ -259,7 +259,7 @@ static int transform_mul(lua_State* L)
 static int make_translation_transform(lua_State* L)
 {
     Stack s(L);
-    Transformr xfm = make_translation(Vec3r(s.get_double(1), s.get_double(2), s.get_double(3)));
+    Transformr xfm = make_translation(Vec3r(s.get_real(1), s.get_real(2), s.get_real(3)));
     s.push_transform(xfm);
     return 1;
 }
@@ -278,7 +278,7 @@ static int make_lookat_transform(lua_State* L)
 static int make_scale_transform(lua_State* L)
 {
     Stack s(L);
-    Transformr xfm = make_scale(Vec3r(s.get_double(1), s.get_double(2), s.get_double(3)));
+    Transformr xfm = make_scale(Vec3r(s.get_real(1), s.get_real(2), s.get_real(3)));
     s.push_transform(xfm);
     return 1;
 }
@@ -286,7 +286,7 @@ static int make_scale_transform(lua_State* L)
 static int make_rotation_x_transform(lua_State* L)
 {
     Stack s(L);
-    Transformr xfm = make_rotation_x(s.get_double(1));
+    Transformr xfm = make_rotation_x(s.get_real(1));
     s.push_transform(xfm);
     return 1;
 }
@@ -294,7 +294,7 @@ static int make_rotation_x_transform(lua_State* L)
 static int make_rotation_y_transform(lua_State* L)
 {
     Stack s(L);
-    Transformr xfm = make_rotation_y(s.get_double(1));
+    Transformr xfm = make_rotation_y(s.get_real(1));
     s.push_transform(xfm);
     return 1;
 }
@@ -302,7 +302,7 @@ static int make_rotation_y_transform(lua_State* L)
 static int make_rotation_z_transform(lua_State* L)
 {
     Stack s(L);
-    Transformr xfm = make_rotation_z(s.get_double(1));
+    Transformr xfm = make_rotation_z(s.get_real(1));
     s.push_transform(xfm);
     return 1;
 }
@@ -310,7 +310,7 @@ static int make_rotation_z_transform(lua_State* L)
 static int make_rotation_transform(lua_State* L)
 {
     Stack s(L);
-    Transformr xfm = make_rotation(s.get_vec3(1), s.get_double(2));
+    Transformr xfm = make_rotation(s.get_vec3(1), s.get_real(2));
     s.push_transform(xfm);
     return 1;
 }
@@ -381,11 +381,11 @@ static int camera_make_perspective(lua_State* L)
     Vec3r eye = safe_getfield_vec3(L, 1, "eye", Vec3r(0, 0, 1));
     Vec3r target = safe_getfield_vec3(L, 1, "target", Vec3r(0, 0, 0));
     Vec3r up = safe_getfield_vec3(L, 1, "up", Vec3r(0, 1, 0));
-    double w = safe_getfield_double(L, 1, "frame_width", 512.0);
-    double h = safe_getfield_double(L, 1, "frame_height", 512.0);
-    double fov = safe_getfield_double(L, 1, "fov", 45.0);
-    double lensr = safe_getfield_double(L, 1, "lens_radius", 0.5);
-    double dist = safe_getfield_double(L, 1, "focal_distance", 1.0);
+    Real w = safe_getfield_real(L, 1, "frame_width", 512.0);
+    Real h = safe_getfield_real(L, 1, "frame_height", 512.0);
+    Real fov = safe_getfield_real(L, 1, "fov", 45.0);
+    Real lensr = safe_getfield_real(L, 1, "lens_radius", 0.5);
+    Real dist = safe_getfield_real(L, 1, "focal_distance", 1.0);
 
     std::shared_ptr<PerspectiveCamera> cam =
         std::make_shared<PerspectiveCamera>(eye, target, up, Vec2u(w, h), fov, lensr, dist);
@@ -441,9 +441,9 @@ static int renderer_ctor(lua_State* L)
     bool preview = safe_getfield_bool(L, 3, "preview", true);
     int adaptive_spp = safe_getfield_int(L, 3, "adaptive_spp", 0);
     int firefly_spp = safe_getfield_int(L, 3, "firefly_spp", 0);
-    double adaptive_threshold = safe_getfield_double(L, 3, "adaptive_threshold", 1.0);
-    double adaptive_exponent = safe_getfield_double(L, 3, "adaptive_exponent", 1.0);
-    double firefly_threshold = safe_getfield_double(L, 3, "firefly_threshold", 1.0);
+    float adaptive_threshold = (float)safe_getfield_real(L, 3, "adaptive_threshold", 1.0);
+    float adaptive_exponent = (float)safe_getfield_real(L, 3, "adaptive_exponent", 1.0);
+    float firefly_threshold = (float)safe_getfield_real(L, 3, "firefly_threshold", 1.0);
     const char* tonemap_str = safe_getfield_string(L, 3, "tonemap", "gamma");
 
     Options opts;
@@ -502,10 +502,10 @@ static int renderer_set_focus_point(lua_State* L)
 {
     Stack s(L);
     auto renderer = s.get_renderer(1);
-    double x = s.get_double(2);
-    double y = s.get_double(3);
-    double dist = renderer->set_focus_point(Vec2r(x, y));
-    s.push_double(dist);
+    Real x = s.get_real(2);
+    Real y = s.get_real(3);
+    Real dist = renderer->set_focus_point(Vec2r(x, y));
+    s.push_real(dist);
     return 1;
 }
 

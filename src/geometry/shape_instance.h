@@ -26,6 +26,8 @@ public:
 
     const Transformr& get_transform() const { return m_transform; }
 
+    bool transform_swaps_handedness() const { return m_transform_swaps_handedness; }
+
 private:
     Shape* m_shape;
     ShapeID m_shape_id;
@@ -33,6 +35,7 @@ private:
     BBoxr m_bbox;
     Vec3r m_centroid;
     std::string m_name;
+    bool m_transform_swaps_handedness;
 };
 
 typedef std::shared_ptr<ShapeInstance> ShapeInstancePtr;

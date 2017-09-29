@@ -8,7 +8,7 @@
 #include "geometry/world.h"
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
-#include "geometry/surface_interaction.h"
+#include "geometry/interaction.h"
 #include "util/log.h"
 #include "util/stop_watch.h"
 #include "camera/camera.h"
@@ -158,8 +158,7 @@ Real Renderer::set_focus_point(const Vec2r& point)
     {
         SurfaceInteraction isect;
         m_world->get_surface_interaction(hit, &isect);
-        Vec3r pos = isect.position;
-        dist = length(pos - m_camera->get_eye());
+        dist = length(isect.position - m_camera->get_eye());
 
         auto cam = std::dynamic_pointer_cast<ProjectiveCamera>(m_camera);
         if (cam)
@@ -328,12 +327,12 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
             sample.film_point = Vec2r((Real)tile.x + 0.5 + dx * (Real)tile.w,
                                   (Real)tile.y + 0.5 + dy * (Real)tile.h);
             Ray ray;
-            Real ray_w = m_camera->generate_ray(sample, &ray);
-            Spectrum color = integrator->Li(ray) * ray_w;
+            float ray_w = m_camera->generate_ray(sample, &ray);
+            Spectrum color = integrator->Li(ray);
 
             for (uint32 j = 0; j < tile.h; ++j)
                 for (uint32 i = 0; i < tile.w; ++i)
-                    m_film->add_sample(tile.x + i, tile.y + j, color);
+                    m_film->add_sample(tile.x + i, tile.y + j, color, ray_w);
         }
     };
 
@@ -343,9 +342,9 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
     // Render with an adaptive number of samples per pixel proportional to the standard deviation
     if (m_num_adaptive_samples > 0 && tile.n != 0 && tile.w == 1 && tile.h == 1)
     {
-        Real stddev = m_film->get_standard_deviation(tile.x, tile.y);
-        Real v = pow(clamp(stddev / m_adaptive_threshold, 0.0, 1.0), m_adaptive_exponent);
-        uint32 num_adaptive_samples = (uint32)(v * (Real)m_num_adaptive_samples);
+        float stddev = m_film->get_standard_deviation(tile.x, tile.y);
+        float v = pow(clamp(stddev * rcp(m_adaptive_threshold), 0.0f, 1.0f), m_adaptive_exponent);
+        uint32 num_adaptive_samples = (uint32)(v * (float)m_num_adaptive_samples);
         if (num_adaptive_samples > 0)
             render(num_adaptive_samples);
     }
@@ -353,7 +352,7 @@ void Renderer::render_subtile(const Tile& tile, uint32 spp, bool reset, std::sha
     // Render num_firefly_samples if the standard deviation is > than the threshold
     if (m_num_firefly_samples > 0 && tile.n != 0 && tile.w == 1 && tile.h == 1)
     {
-        Real stddev = m_film->get_standard_deviation(tile.x, tile.y);
+        float stddev = m_film->get_standard_deviation(tile.x, tile.y);
         if (stddev > m_firefly_threshold)
             render(m_num_firefly_samples);
     }
@@ -435,7 +434,7 @@ void Renderer::postprocess_buffer_and_display(Vec3f* framebuffer, uint32 size_x,
         {
             for (uint32 j = 0; j < size_x; ++j)
             {
-                const Real dev = sqrt(pixels[i * size_x + j].variance);
+                const float dev = sqrt(pixels[i * size_x + j].variance);
                 framebuffer[i * size_x + j] = Vec3f(dev, dev, dev);
             }
         }

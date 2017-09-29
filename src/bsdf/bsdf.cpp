@@ -1,11 +1,11 @@
 #include "bsdf/bsdf.h"
-#include "geometry/surface_interaction.h"
+#include "geometry/interaction.h"
 
 namespace hop {
 
-Bsdf::Bsdf(const SurfaceInteraction& intersection_info)
-    : m_intersection_info(intersection_info)
+Bsdf::Bsdf(const SurfaceInteraction& interaction)
 {
+    (void)interaction;
 }
 
 } // namespace hop

@@ -28,4 +28,12 @@ MaterialID MaterialManager::create__(const std::string& material_name)
     return id;
 }
 
+Material* MaterialManager::get__(MaterialID id)
+{
+    auto it = m_id_to_mat.find(id);
+    if (it != m_id_to_mat.end())
+        return it->second.get();
+    return m_id_to_mat[0].get();
+}
+
 } // namespace hop
