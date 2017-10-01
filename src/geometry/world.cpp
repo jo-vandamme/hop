@@ -29,7 +29,7 @@ void World::add_shape(ShapeID id)
 {
     Shape* shape = ShapeManager::get<Shape>(id);
     if (!shape->is_instance())
-        id = ShapeManager::create<ShapeInstance>(id, Transformr());
+        id = ShapeManager::create<ShapeInstance>(id, Transformr(), false);
 
     ShapeInstance* instance = ShapeManager::get<ShapeInstance>(id);
     m_instance_ptrs.push_back(instance);
@@ -55,29 +55,23 @@ BBoxr World::get_bbox()
 
 void World::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* interaction)
 {
-    const Vec3r& p0 = m_vertices[hit.primitive_id * 3 + 0];
-    const Vec3r& p1 = m_vertices[hit.primitive_id * 3 + 1];
-    const Vec3r& p2 = m_vertices[hit.primitive_id * 3 + 2];
+    Real b0 = Real(1.0) - hit.b1 - hit.b2;
+
+    const Vec3r& p0 = Vec3r(m_vertices[hit.primitive_id * 3 + 0]);
+    const Vec3r& p1 = Vec3r(m_vertices[hit.primitive_id * 3 + 1]);
+    const Vec3r& p2 = Vec3r(m_vertices[hit.primitive_id * 3 + 2]);
+    Vec3r pos = b0 * p0 + hit.b1 * p1 + hit.b2 * p2;
 
     const Vec2r& uv0 = Vec2r(m_uvs[hit.primitive_id * 3 + 0]);
     const Vec2r& uv1 = Vec2r(m_uvs[hit.primitive_id * 3 + 1]);
     const Vec2r& uv2 = Vec2r(m_uvs[hit.primitive_id * 3 + 2]);
+    Vec2r uv = b0 * uv0 + hit.b1 * uv1 + hit.b2 * uv2;
 
     const Vec3r& n0 = Vec3r(m_normals[hit.primitive_id * 3 + 0]);
     const Vec3r& n1 = Vec3r(m_normals[hit.primitive_id * 3 + 1]);
     const Vec3r& n2 = Vec3r(m_normals[hit.primitive_id * 3 + 2]);
+    Vec3r ns = b0 * n0 + hit.b1 * n1 + hit.b2 * n2;
 
-    Real b0 = Real(1.0) - hit.b1 - hit.b2;
-    Vec2r uv  = b0 * uv0 + hit.b1 * uv1 + hit.b2 * uv2;
-    Vec3r pos = b0 * p0  + hit.b1 * p1  + hit.b2 * p2;
-    Vec3r n   = b0 * n0  + hit.b1 * n1  + hit.b2 * n2;
-
-    const Transformr xfm = inverse(m_instance_inv_xfm[hit.shape_id]);
-    pos = transform_point(xfm, pos);
-    n = transform_normal(xfm, n);
-    const Vec3r wo = transform_vector(xfm, -hit.ray_dir);
-
-    /*
     Vec3r dpdu, dpdv;
     const Vec2r duv02 = uv0 - uv2;
     const Vec2r duv12 = uv1 - uv2;
@@ -86,12 +80,33 @@ void World::get_surface_interaction(const HitInfo& hit, SurfaceInteraction* inte
     const Real inv_det = rcp(duv02.x * duv12.y - duv02.y * duv12.x);
     dpdu = ( duv12.y * dp02 - duv02.y * dp12) * inv_det;
     dpdv = (-duv12.x * dp02 + duv02.x * dp12) * inv_det;
-    dpdu = transform_vector(xfm, dpdu);
-    dpdv = transform_vector(xfm, dpdv);
-    */
 
-    *interaction = SurfaceInteraction(pos, Vec3f(n), Vec2f(uv), Vec3f(wo),
-            m_instance_ptrs[hit.shape_id], m_materials[hit.primitive_id]);
+    Vec3r ss = normalize(dpdu);
+    Vec3r ts = cross(ss, ns);
+    if (ts.length2() > 0.0f)
+    {
+        ts = normalize(ts);
+        ss = cross(ts, ns);
+    }
+    else
+    {
+        coordinate_system(ns, &ss, &ts);
+    }
+    ns = normalize(cross(ss, ts));
+
+    const Transformr xfm = inverse(m_instance_inv_xfm[hit.shape_id]);
+
+    interaction->position = transform_point(xfm, pos);
+    interaction->wo = transform_vector(xfm, -hit.ray_dir);
+    interaction->uv = uv;
+    interaction->normal = transform_normal(xfm, normalize(cross(dp02, dp12)));
+    interaction->dpdu = transform_vector(xfm, dpdu);
+    interaction->dpdv = transform_vector(xfm, dpdv);
+    interaction->shading_normal = transform_normal(xfm, ns);
+    interaction->shading_dpdu = transform_vector(xfm, ss);
+    interaction->shading_dpdv = transform_vector(xfm, ts);
+    interaction->shape = m_instance_ptrs[hit.shape_id];
+    interaction->material = m_materials[hit.primitive_id];
 }
 
 void World::preprocess()
@@ -276,9 +291,9 @@ inline bool Visitor::intersect(const bvh::Node& node, const Ray& ray, HitInfo* h
     uint32 vert_index = tri_idx * 3;
     for (; vert_index < (tri_idx + num_primitives) * 3; vert_index += 3)
     {
-        const Vec3r& v0 = m_vertices[vert_index + 0];
-        const Vec3r& v1 = m_vertices[vert_index + 1];
-        const Vec3r& v2 = m_vertices[vert_index + 2];
+        const Vec3r& v0 = Vec3r(m_vertices[vert_index + 0]);
+        const Vec3r& v1 = Vec3r(m_vertices[vert_index + 1]);
+        const Vec3r& v2 = Vec3r(m_vertices[vert_index + 2]);
         const Vec3r e1 = v1 - v0;
         const Vec3r e2 = v2 - v0;
         if (intersect_triangle(v0, e1, e2, ray, hit))
@@ -299,9 +314,9 @@ inline bool Visitor::intersect_any(const bvh::Node& node, const Ray& ray, HitInf
     uint32 vert_index = tri_idx * 3;
     for (; vert_index < (tri_idx + num_primitives) * 3; vert_index += 3)
     {
-        const Vec3r& v0 = m_vertices[vert_index + 0];
-        const Vec3r& v1 = m_vertices[vert_index + 1];
-        const Vec3r& v2 = m_vertices[vert_index + 2];
+        const Vec3r& v0 = Vec3r(m_vertices[vert_index + 0]);
+        const Vec3r& v1 = Vec3r(m_vertices[vert_index + 1]);
+        const Vec3r& v2 = Vec3r(m_vertices[vert_index + 2]);
         const Vec3r e1 = v1 - v0;
         const Vec3r e2 = v2 - v0;
         if (intersect_triangle(v0, e1, e2, ray, hit))

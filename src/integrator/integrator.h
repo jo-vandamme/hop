@@ -12,7 +12,7 @@ class Ray;
 class Integrator
 {
 public:
-    Integrator(std::shared_ptr<World> world);
+    Integrator(std::shared_ptr<World> world, float ray_epsilon);
 
     // Sample the incident radiance along a ray.
     virtual Spectrum Li(const Ray& ray) const = 0;
@@ -21,6 +21,7 @@ public:
 
 protected:
     std::shared_ptr<World> m_world;
+    float m_ray_epsilon;
 };
 
 } // namespace hop

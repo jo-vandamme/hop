@@ -12,8 +12,8 @@
 
 namespace hop {
 
-PathIntegrator::PathIntegrator(std::shared_ptr<World> world)
-    : Integrator(world)
+PathIntegrator::PathIntegrator(std::shared_ptr<World> world, float ray_eps)
+    : Integrator(world, ray_eps)
 {
 }
 
@@ -46,7 +46,7 @@ Spectrum PathIntegrator::Li(const Ray& r) const
         Spectrum brdf;
         float pdf;
 
-        uint32 mat = 2;
+        uint32 mat = 0;
         Vec3f ray_dir = Vec3f(ray.dir);
         if (mat == 0)
         {
@@ -86,8 +86,8 @@ Spectrum PathIntegrator::Li(const Ray& r) const
         }
 
         ray.dir = normalize(Vec3r(ray_dir));
-        ray.org = Vec3r(isect.position) + ray.dir * RAY_EPSILON;
-        ray.tmin = RAY_TMIN;
+        ray.org = isect.position;
+        ray.tmin = m_ray_epsilon;
         ray.tmax = RAY_TFAR;
 
         throughput *= brdf * dot(n, ray_dir) * rcp(pdf);

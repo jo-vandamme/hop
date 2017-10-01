@@ -14,7 +14,7 @@ function init()
             xfm = make_translation(i, j, 0) *
                   make_scale(0.3, 0.3, 0.3)
 
-            inst = make_instance(shape, xfm)
+            inst = make_instance(shape, xfm, true)
             world:add_shape(inst)
         end
     end

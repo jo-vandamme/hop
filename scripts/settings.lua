@@ -11,7 +11,8 @@ options = {
     firefly_threshold = 1.0,
     preview_spp = 1,
     preview = true,
-    tonemap = "gamma"
+    tonemap = "gamma",
+    ray_epsilon = 0.0001
 }
 
 renderer = nil

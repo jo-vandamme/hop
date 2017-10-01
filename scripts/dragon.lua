@@ -8,6 +8,7 @@ function init()
     -- overwrite some of the settings
     options.frame_width = 700
     options.frame_height = 700
+    options.ray_epsilon = 0.0001
 
     shape = load_obj(get_path() .. "models/dragon.obj")
 

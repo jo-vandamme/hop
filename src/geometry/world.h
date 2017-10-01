@@ -49,7 +49,7 @@ private:
     std::vector<bvh::Node> m_bvh_nodes;
     std::vector<Transformr> m_instance_inv_xfm;
     std::vector<uint32> m_instance_bvh_roots;
-    std::vector<Vec3r> m_vertices;
+    std::vector<Vec3f> m_vertices;
     std::vector<Vec3f> m_normals;
     std::vector<Vec2f> m_uvs;
     bool m_dirty;

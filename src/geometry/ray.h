@@ -4,6 +4,8 @@
 #include "math/math.h"
 #include "math/vec3.h"
 
+#define RAY_TFAR Real(1e14)
+
 namespace hop {
 
 class Ray

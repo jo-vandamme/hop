@@ -6,8 +6,8 @@
 
 namespace hop {
 
-DebugIntegrator::DebugIntegrator(std::shared_ptr<World> world, Type type)
-    : Integrator(world), m_type(type)
+DebugIntegrator::DebugIntegrator(std::shared_ptr<World> world, float ray_eps, Type type)
+    : Integrator(world, ray_eps), m_type(type)
 {
 }
 

@@ -35,4 +35,20 @@ void TriangleMesh::clear_bboxes()
     m_bboxes = std::vector<BBoxr>();
 }
 
+BBoxr TriangleMesh::get_bbox(const Transformr& xfm, bool compute_tight_bbox) const
+{
+    if (m_triangles.empty() || !compute_tight_bbox)
+        return transform_bbox(xfm, m_bbox);
+
+    BBoxr bbox;
+    for (auto& tri : m_triangles)
+    {
+        Vec3r v0 = transform_point(xfm, Vec3r(tri.vertices[0]));
+        Vec3r v1 = transform_point(xfm, Vec3r(tri.vertices[1]));
+        Vec3r v2 = transform_point(xfm, Vec3r(tri.vertices[2]));
+        bbox.merge(BBoxr(v0, v1, v2));
+    }
+    return bbox;
+}
+
 } // namespace hop

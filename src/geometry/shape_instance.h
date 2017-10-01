@@ -13,7 +13,7 @@ namespace hop {
 class ShapeInstance : public Shape
 {
 public:
-    ShapeInstance(ShapeID id, const Transformr& xfm);
+    ShapeInstance(ShapeID id, const Transformr& xfm, bool compute_tight_bbox);
 
     const std::string& get_name() const override { return m_name; }
     ShapeType get_type() const override { return m_shape->get_type(); };

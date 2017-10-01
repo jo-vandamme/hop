@@ -5,8 +5,8 @@
 
 namespace hop {
 
-Integrator::Integrator(std::shared_ptr<World> world)
-    : m_world(world)
+Integrator::Integrator(std::shared_ptr<World> world, float ray_epsilon)
+    : m_world(world), m_ray_epsilon(ray_epsilon)
 {
 }
 

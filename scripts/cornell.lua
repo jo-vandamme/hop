@@ -8,6 +8,7 @@ function init()
     options.frame_width = 800
     options.frame_height = 600
     options.adaptive_spp = 0
+    options.ray_epsilon = 0.0001
 
     left_wall = load_obj(get_path() .. "models/cbox/leftwall.obj")
     right_wall = load_obj(get_path() .. "models/cbox/rightwall.obj")

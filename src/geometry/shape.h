@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "math/bbox.h"
+#include "math/transform.h"
 
 #include <string>
 #include <atomic>
@@ -29,6 +30,14 @@ public:
     virtual bool is_instance() const = 0;
     virtual const BBoxr& get_bbox() const = 0;
     virtual const Vec3r& get_centroid() const = 0;
+
+    // Shape implementations can override this method to
+    // return a tighter bounding box by first transforming the primitives
+    // and then computing a bounding box
+    virtual BBoxr get_bbox(const Transformr& xfm, bool /*compute_tight_bbox*/) const
+    {
+        return transform_bbox(xfm, get_bbox());
+    }
 
     void set_id(ShapeID id) { m_shape_id = id; }
     ShapeID get_id() const { return m_shape_id; }

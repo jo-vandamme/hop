@@ -16,22 +16,21 @@ namespace hop {
 class Triangle
 {
 public:
-    Vec3r vertices[3];
+    Vec3f vertices[3];
     Vec3f normals[3];
     Vec2f uvs[3];
     MaterialID material_id;
 
     Triangle() : material_id(0) { }
 
-    BBoxr get_bbox() const { return BBoxr(vertices[0], vertices[1], vertices[2]); }
+    BBoxr get_bbox() const { return BBoxr(Vec3r(vertices[0]), Vec3r(vertices[1]), Vec3r(vertices[2])); }
     Vec3r get_centroid() const { return get_bbox().get_centroid(); }
 };
 
 class TriangleMesh : public Shape
 {
 public:
-    TriangleMesh(const std::string& name,
-                 std::vector<Triangle>& triangles);
+    TriangleMesh(const std::string& name, std::vector<Triangle>& triangles);
 
     const std::string& get_name() const override { return m_name; }
     ShapeType get_type() const override { return TRIANGLE_MESH; }
@@ -40,6 +39,8 @@ public:
 
     const BBoxr& get_bbox() const override { return m_bbox; }
     const Vec3r& get_centroid() const override { return m_centroid; }
+
+    BBoxr get_bbox(const Transformr& xfm, bool compute_tight_bbox) const override;
 
     const std::vector<Triangle>& get_triangles() const { return m_triangles; }
     const std::vector<BBoxr>& get_triangles_bboxes() const { return m_bboxes; }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include "options.h"
+#include "render_options.h"
 #include "camera/camera.h"
 #include "camera/trackball.h"
 #include "geometry/world.h"
@@ -25,7 +25,7 @@ namespace hop {
 class Renderer
 {
 public:
-    Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options);
+    Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const RenderOptions& options);
     ~Renderer() { Log("renderer") << DEBUG << "renderer deleted"; }
 
     int render(bool interactive = true);
@@ -71,7 +71,7 @@ private:
     std::shared_ptr<Integrator> m_integrator;
     uint32 m_next_free_tile;
     bool m_ctrl_pressed;
-    Options m_options;
+    RenderOptions m_options;
     lua::Environment* m_lua;
     IntegratorMode m_integrator_mode;
     DisplayMode m_display_mode;

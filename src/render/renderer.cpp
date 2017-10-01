@@ -1,4 +1,6 @@
 #include "hop.h"
+#include "types.h"
+#include "render_options.h"
 #include "render/renderer.h"
 #include "render/gl_window.h"
 #include "render/drawing.h"
@@ -23,8 +25,6 @@
 #include "integrator/ao.h"
 #include "integrator/debug.h"
 #include "spectrum/spectrum.h"
-#include "options.h"
-#include "types.h"
 
 #include <vector>
 #include <memory>
@@ -35,7 +35,7 @@
 
 namespace hop {
 
-Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const Options& options)
+Renderer::Renderer(std::shared_ptr<World> world, std::shared_ptr<Camera> camera, const RenderOptions& options)
     : m_window(std::make_unique<GLWindow>(options.frame_size.x, options.frame_size.y, "Hop renderer"))
     , m_world(world), m_camera(camera), m_next_free_tile(0)
     , m_ctrl_pressed(false), m_options(options), m_integrator_mode(PATH), m_display_mode(COLOR)
@@ -177,20 +177,20 @@ void Renderer::reset()
     switch (m_integrator_mode)
     {
         case OCCLUSION:
-            m_integrator = std::make_shared<AmbientOcclusionIntegrator>(m_world);
+            m_integrator = std::make_shared<AmbientOcclusionIntegrator>(m_world, m_options.ray_epsilon);
             break;
         case POSITION:
-            m_integrator = std::make_shared<DebugIntegrator>(m_world, DebugIntegrator::POSITION);
+            m_integrator = std::make_shared<DebugIntegrator>(m_world, m_options.ray_epsilon, DebugIntegrator::POSITION);
             break;
         case NORMALS:
-            m_integrator = std::make_shared<DebugIntegrator>(m_world, DebugIntegrator::NORMALS);
+            m_integrator = std::make_shared<DebugIntegrator>(m_world, m_options.ray_epsilon, DebugIntegrator::NORMALS);
             break;
         case UVS:
-            m_integrator = std::make_shared<DebugIntegrator>(m_world, DebugIntegrator::UVS);
+            m_integrator = std::make_shared<DebugIntegrator>(m_world, m_options.ray_epsilon, DebugIntegrator::UVS);
             break;
         case PATH:
         default:
-            m_integrator = std::make_shared<PathIntegrator>(m_world);
+            m_integrator = std::make_shared<PathIntegrator>(m_world, m_options.ray_epsilon);
             break;
     }
 

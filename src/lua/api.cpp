@@ -1,9 +1,9 @@
 #include "hop.h"
+#include "render_options.h"
 #include "lua/lua.h"
 #include "lua/stack.h"
 #include "lua/environment.h"
 #include "util/log.h"
-
 #include "loaders/obj.h"
 #include "math/vec2.h"
 #include "math/vec3.h"
@@ -14,7 +14,6 @@
 #include "camera/perspective_camera.h"
 #include "render/renderer.h"
 #include "render/tonemap.h"
-#include "options.h"
 
 #include <sstream>
 #include <memory>
@@ -369,7 +368,8 @@ static int make_instance(lua_State* L)
     Stack s(L);
     ShapeID id = s.get_shape(1);
     Transformr xfm = s.get_transform(2);
-    ShapeID inst_id = ShapeManager::create<ShapeInstance>(id, xfm);
+    bool compute_tight_bbox = s.get_bool(3);
+    ShapeID inst_id = ShapeManager::create<ShapeInstance>(id, xfm, compute_tight_bbox);
     s.push_shape(inst_id);
     return 1;
 }
@@ -428,25 +428,28 @@ static int camera_get_up(lua_State* L)
 
 static int renderer_ctor(lua_State* L)
 {
+    RenderOptions opts;
+
     Stack s(L);
     std::shared_ptr<World> world = s.get_world(1);
     std::shared_ptr<Camera> cam = s.get_camera(2);
     luaL_checktype(L, 3, LUA_TTABLE);
-    int fw = safe_getfield_int(L, 3, "frame_width", 512);
-    int fh = safe_getfield_int(L, 3, "frame_height", 512);
-    int tw = safe_getfield_int(L, 3, "tile_width", 16);
-    int th = safe_getfield_int(L, 3, "tile_height", 16);
-    int spp = safe_getfield_int(L, 3, "spp", 10);
-    int preview_spp = safe_getfield_int(L, 3, "preview_spp", 1);
-    bool preview = safe_getfield_bool(L, 3, "preview", true);
-    int adaptive_spp = safe_getfield_int(L, 3, "adaptive_spp", 0);
-    int firefly_spp = safe_getfield_int(L, 3, "firefly_spp", 0);
-    float adaptive_threshold = (float)safe_getfield_real(L, 3, "adaptive_threshold", 1.0);
-    float adaptive_exponent = (float)safe_getfield_real(L, 3, "adaptive_exponent", 1.0);
-    float firefly_threshold = (float)safe_getfield_real(L, 3, "firefly_threshold", 1.0);
+    float ray_epsilon = (float)safe_getfield_real(L, 3, "ray_epsilon", opts.ray_epsilon);
+    int fw = safe_getfield_int(L, 3, "frame_width", opts.frame_size.x);
+    int fh = safe_getfield_int(L, 3, "frame_height", opts.frame_size.y);
+    int tw = safe_getfield_int(L, 3, "tile_width", opts.tile_size.x);
+    int th = safe_getfield_int(L, 3, "tile_height", opts.tile_size.y);
+    int spp = safe_getfield_int(L, 3, "spp", opts.spp);
+    int preview_spp = safe_getfield_int(L, 3, "preview_spp", opts.preview_spp);
+    bool preview = safe_getfield_bool(L, 3, "preview", opts.preview);
+    int adaptive_spp = safe_getfield_int(L, 3, "adaptive_spp", opts.adaptive_spp);
+    int firefly_spp = safe_getfield_int(L, 3, "firefly_spp", opts.firefly_spp);
+    float adaptive_threshold = (float)safe_getfield_real(L, 3, "adaptive_threshold", opts.adaptive_threshold);
+    float adaptive_exponent = (float)safe_getfield_real(L, 3, "adaptive_exponent", opts.adaptive_exponent);
+    float firefly_threshold = (float)safe_getfield_real(L, 3, "firefly_threshold", opts.firefly_threshold);
     const char* tonemap_str = safe_getfield_string(L, 3, "tonemap", "gamma");
 
-    Options opts;
+    opts.ray_epsilon = ray_epsilon;
     opts.frame_size = Vec2u(fw, fh);
     opts.tile_size = Vec2u(tw, th);
     opts.spp = spp;

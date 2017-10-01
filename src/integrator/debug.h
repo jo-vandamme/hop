@@ -14,7 +14,7 @@ public:
         UVS
     };
 
-    DebugIntegrator(std::shared_ptr<World> world, Type type);
+    DebugIntegrator(std::shared_ptr<World> world, float ray_eps, Type type);
     Spectrum Li(const Ray& ray) const override;
 
 private:

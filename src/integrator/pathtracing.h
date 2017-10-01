@@ -7,7 +7,7 @@ namespace hop {
 class PathIntegrator : public Integrator
 {
 public:
-    PathIntegrator(std::shared_ptr<World> world);
+    PathIntegrator(std::shared_ptr<World> world, float ray_eps);
     Spectrum Li(const Ray& ray) const override;
 };
 

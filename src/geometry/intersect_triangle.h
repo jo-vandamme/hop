@@ -7,6 +7,8 @@
 #include "geometry/ray.h"
 #include "geometry/hit_info.h"
 
+#define RAY_EPSILON Real(1e-14)
+
 namespace hop {
 
 inline bool intersect_triangle(const Vec3r& v0, const Vec3r& e1, const Vec3r& e2, const Ray& ray, HitInfo* hit)

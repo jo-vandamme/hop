@@ -19,7 +19,7 @@ function init()
                       make_rotation(
                           Vec3.new(math.random(), math.random(), math.random()),
                           math.random(-90, 90))
-                inst = make_instance(shape, xfm)
+                inst = make_instance(shape, xfm, false)
                 world:add_shape(inst)
             end
         end

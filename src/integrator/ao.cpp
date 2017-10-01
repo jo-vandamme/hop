@@ -11,8 +11,8 @@
 
 namespace hop {
 
-AmbientOcclusionIntegrator::AmbientOcclusionIntegrator(std::shared_ptr<World> world)
-    : Integrator(world)
+AmbientOcclusionIntegrator::AmbientOcclusionIntegrator(std::shared_ptr<World> world, float ray_eps)
+    : Integrator(world, ray_eps)
 {
 }
 
@@ -37,8 +37,8 @@ Spectrum AmbientOcclusionIntegrator::Li(const Ray& ray) const
 
         Ray occlusion_ray;
         occlusion_ray.dir = normalize(Vec3r(random_dir));
-        occlusion_ray.org = Vec3r(isect.position) + occlusion_ray.dir * RAY_EPSILON;
-        occlusion_ray.tmin = RAY_TMIN;
+        occlusion_ray.org = isect.position;
+        occlusion_ray.tmin = m_ray_epsilon;
         occlusion_ray.tmax = RAY_TFAR;
         HitInfo occlusion_hit;
         if (m_world->intersect_any(occlusion_ray, &occlusion_hit))

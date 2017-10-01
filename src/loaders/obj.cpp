@@ -65,7 +65,7 @@ ShapeID load(const char* file)
 
     std::vector<std::string> tokens(20);
 
-    std::vector<Vec3r> vertices;
+    std::vector<Vec3f> vertices;
     std::vector<Vec3f> normals;
     std::vector<Vec2f> uvs;
     std::vector<Triangle> triangles;
@@ -98,7 +98,7 @@ ShapeID load(const char* file)
         else if (keyword == "v")
         {
             auto f = parse_floats(tokens);
-            vertices.push_back(Vec3r(f[0], f[1], f[2]));
+            vertices.push_back(Vec3f(f[0], f[1], f[2]));
         }
         else if (keyword == "vt")
         {
@@ -178,9 +178,9 @@ ShapeID load(const char* file)
 
                 if (!has_normals || normals_null)
                 {
-                    const Vec3r e01 = tri.vertices[1] - tri.vertices[0];
-                    const Vec3r e02 = tri.vertices[2] - tri.vertices[0];
-                    const Vec3f normal = Vec3f(normalize(cross(e01, e02)));
+                    const Vec3f e01 = tri.vertices[1] - tri.vertices[0];
+                    const Vec3f e02 = tri.vertices[2] - tri.vertices[0];
+                    const Vec3f normal = normalize(cross(e01, e02));
                     tri.normals[0] = tri.normals[1] = tri.normals[2] = normal;
                 }
 

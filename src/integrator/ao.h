@@ -7,7 +7,7 @@ namespace hop {
 class AmbientOcclusionIntegrator : public Integrator
 {
 public:
-    AmbientOcclusionIntegrator(std::shared_ptr<World> world);
+    AmbientOcclusionIntegrator(std::shared_ptr<World> world, float ray_eps);
     Spectrum Li(const Ray& ray) const override;
 };
 
